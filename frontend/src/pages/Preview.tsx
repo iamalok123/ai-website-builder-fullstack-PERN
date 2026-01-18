@@ -1,7 +1,7 @@
 const Preview = () => {
     return (
         <div>
-            <h1>Preview</h1>
+            <h1 className="text-white">Preview</h1>
         </div>
     )
 }
