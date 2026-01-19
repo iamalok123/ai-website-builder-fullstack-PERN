@@ -4,8 +4,6 @@ node_modules/
 # Build outputs
 dist/
 build/
-dist-ssr/
-.vite/
 
 # Environment variables
 .env
@@ -13,6 +11,7 @@ dist-ssr/
 .env.*.local
 .env.development
 .env.production
+.env.test
 
 # Logs
 logs/
@@ -48,8 +47,12 @@ coverage/
 # Misc
 *.local
 .cache/
-.eslintcache
-.tsbuildinfo
+tmp/
+temp/
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Database
+*.sqlite
+*.sqlite3

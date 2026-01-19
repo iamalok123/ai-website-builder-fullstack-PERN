@@ -5,7 +5,6 @@ node_modules/
 dist/
 build/
 dist-ssr/
-.vite/
 
 # Environment variables
 .env
@@ -25,6 +24,11 @@ lerna-debug.log*
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Editor directories and files
@@ -48,8 +52,11 @@ coverage/
 # Misc
 *.local
 .cache/
-.eslintcache
-.tsbuildinfo
+tmp/
+temp/
 
-# TypeScript cache
-*.tsbuildinfo
+# Package manager lock files (keep only one)
+# Uncomment the ones you don't use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
