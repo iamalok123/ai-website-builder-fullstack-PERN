@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import type { Project } from "../types";
 import { useEffect, useRef, useState } from "react";
-import { ArrowBigDownDashIcon, ExternalLink, EyeIcon, EyeOffIcon, FullscreenIcon, LaptopIcon, Loader2Icon, MessageSquareIcon, SaveIcon, SmartphoneIcon, TabletIcon, X } from "lucide-react";
+import { ArrowBigDownDashIcon, ExternalLink, EyeIcon, EyeOffIcon, FullscreenIcon, LaptopIcon, Loader2Icon, MessageSquareIcon, SaveIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
 import { dummyConversations, dummyProjects, dummyVersion } from "../assets/assets";
 import Sidebar from "../components/Sidebar";
 import ProjectPreview, { type ProjectPreviewRef } from "../components/ProjectPreview";
@@ -37,8 +37,24 @@ const Projects = () => {
 
     }
 
+    // Download code (index.html)
     const downloadCode = () => {
-
+        const code = previewRef.current?.getCode() || project?.current_code;
+        if (!code) {
+            if(isGenerating) {
+                return;
+            }
+            return;
+        }
+        const element = document.createElement('a');
+        const file = new Blob([code], { type: 'text/html' });
+        element.href = URL.createObjectURL(file);
+        element.download = 'index.html';
+        document.body.appendChild(element);
+        element.click();
+        // Cleanup
+        document.body.removeChild(element);
+        URL.revokeObjectURL(element.href);
     }
 
     const togglePublish = async () => {
