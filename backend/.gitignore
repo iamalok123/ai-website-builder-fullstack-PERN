@@ -4,14 +4,18 @@ node_modules/
 # Build outputs
 dist/
 build/
+out/
 
-# Environment variables
+# Environment variables (CRITICAL - never commit these)
 .env
 .env.local
 .env.*.local
 .env.development
+.env.development.local
 .env.production
+.env.production.local
 .env.test
+.env.test.local
 
 # Logs
 logs/
@@ -25,6 +29,7 @@ lerna-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Editor directories and files
 .vscode/*
@@ -43,6 +48,7 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+__tests__/coverage/
 
 # Misc
 *.local
@@ -53,6 +59,50 @@ temp/
 # TypeScript cache
 *.tsbuildinfo
 
-# Database
+# ======================================
+# Prisma - Generated Client & Artifacts
+# ======================================
+# Generated Prisma Client (regenerated on deploy via `prisma generate`)
+/generated/
+generated/
+
+# Prisma development artifacts
+prisma/migrations/*.sql.backup
+prisma/*.db
+prisma/*.db-journal
+
+# ======================================
+# Database Files (Local Development)
+# ======================================
 *.sqlite
 *.sqlite3
+*.db
+*.db-journal
+
+# ======================================
+# Deployment - Vercel/Render/Railway
+# ======================================
+# Vercel
+.vercel/
+.vercel
+
+# Render (uses environment variables, no local files needed)
+# Railway
+.railway/
+
+# ======================================
+# Serverless/Edge Functions
+# ======================================
+.netlify/
+.wrangler/
+
+# ======================================
+# Debug & Development
+# ======================================
+*.pid
+*.seed
+*.pid.lock
+
+# Runtime data
+pids/
+*.pid
