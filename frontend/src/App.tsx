@@ -7,15 +7,20 @@ import Projects from "./pages/Projects"
 import View from "./pages/View"
 import Community from "./pages/Community"
 import Navbar from "./components/Navbar"
+import { Toaster } from 'sonner'
+import AuthPage from "./pages/auth/AuthPage"
+import Settings from "./pages/Settings"
 
 const App = () => {
-  const {pathname} = useLocation();
-  const hideNavbar = pathname.startsWith('/projects/') 
-                    && pathname !== '/projects'
-                    || pathname.startsWith('/view/')
-                    || pathname.startsWith('/preview/') ;
+  const { pathname } = useLocation();
+  const hideNavbar = pathname.startsWith('/projects/')
+    && pathname !== '/projects'
+    || pathname.startsWith('/view/')
+    || pathname.startsWith('/preview/');
+
   return (
     <div>
+      <Toaster />
       {!hideNavbar && <Navbar />}
       <main>
         <Routes>
@@ -27,6 +32,8 @@ const App = () => {
           <Route path="/preview/:projectId/:versionId" element={<Preview />} />
           <Route path="/view/:projectId" element={<View />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/auth/:pathname" element={<AuthPage />} />
+          <Route path="/account/settings" element={<Settings />} />
         </Routes>
       </main>
     </div>

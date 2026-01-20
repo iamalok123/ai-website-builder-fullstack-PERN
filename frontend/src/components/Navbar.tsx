@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { assets } from "../assets/assets";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { authClient } from "@/lib/auth-client";
+import { UserButton } from "@daveyplate/better-auth-ui";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -17,6 +19,8 @@ const Navbar = () => {
 
   // Check if link is active
   const isActive = (path: string) => location.pathname === path;
+
+  const { data: session } = authClient.useSession();
 
   return (
     <>
@@ -66,12 +70,18 @@ const Navbar = () => {
 
           {/* CTA Button & Mobile Menu Toggle */}
           <div className="flex items-center gap-3">
-            <button
-              className="px-5 py-1.5 text-sm bg-indigo-600 active:scale-95 hover:bg-indigo-700 transition rounded-full"
-              onClick={() => navigate('/auth/signin')}
-            >
-              Get started
-            </button>
+            {!session?.user ? (
+              <button
+                className="px-5 py-1.5 text-sm bg-indigo-600 active:scale-95 hover:bg-indigo-700 transition rounded-full"
+                onClick={() => navigate('/auth/signin')}
+              >
+                Get started
+              </button>
+            ) : (
+              <UserButton size='icon'/>
+            )
+
+            }
 
             <button
               className="md:hidden active:scale-90 transition"
