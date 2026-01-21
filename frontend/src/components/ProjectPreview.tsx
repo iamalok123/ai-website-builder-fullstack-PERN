@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import type { Project } from "../types";
 import { iframeScript } from "../assets/assets";
 import EditorPanel from "./EditorPanel";
+import LoaderSteps from "./LoaderSteps";
 
 export interface ProjectPreviewProps {
     project: Project | null;
@@ -124,11 +125,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
                     )}
                 </div>
             ) : isGenerating && (
-                <div className="flex flex-col items-center justify-center h-full">
-                    <div className="text-gray-400 text-sm">
-                        <div>Loading</div>
-                    </div>
-                </div>
+                <LoaderSteps />
             )}
         </div>
     )

@@ -1,26 +1,48 @@
+import api from "@/configs/axios";
+import { authClient } from "@/lib/auth-client";
 import { Loader2Icon } from "lucide-react";
 import React, { useState } from "react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
+    const { data: session } = authClient.useSession();
+    const navigate = useNavigate();
+
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
 
     const onSubmitHandler = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         console.log(input);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            if (!session?.user) {
+                return toast.error('You must be logged in to create a website');
+            } else if (!input.trim()) {
+                return toast.error('Please enter a message');
+            }
+            setLoading(true);
+            const { data } = await api.post('/api/user/project', { initial_prompt: input });
             setLoading(false);
-        }, 3000);
+            if (!data.projectId) {
+                toast.error('Failed to get project ID');
+                return;
+            }
+            toast.success('Project created! Generating your website...');
+            navigate(`/projects/${data.projectId}`);
+        } catch (error: any) {
+            console.log(error);
+            setLoading(false);
+            toast.error(error.response?.data?.message || error.message);
+        }
     }
 
     return (
         <div>
             <section className="flex flex-col items-center text-white text-sm pb-20 px-4 font-poppins">
 
-                <a href="https://prebuiltui.com" className="flex items-center gap-2 border border-slate-700 rounded-full p-1 pr-3 text-sm mt-20">
+                <a href="#" className="flex items-center gap-2 border border-slate-700 rounded-full p-1 pr-3 text-sm mt-20">
                     <span className="bg-indigo-600 text-xs px-3 py-1 rounded-full">NEW</span>
                     <p className="flex items-center gap-2">
                         <span>Try 30 days free trial option</span>
@@ -37,7 +59,20 @@ const Home = () => {
                 </p>
 
                 <form onSubmit={onSubmitHandler} className="bg-white/10 max-w-2xl w-full rounded-xl p-4 mt-10 border border-indigo-600/70 focus-within:ring-2 ring-indigo-500 transition-all">
-                    <textarea onChange={e => setInput(e.target.value)} className="bg-transparent outline-none text-gray-300 resize-none w-full" rows={4} placeholder="Describe your presentation in details" required />
+                    <textarea
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && input.trim() && !loading) {
+                                e.preventDefault();
+                                onSubmitHandler(e as unknown as React.FormEvent);
+                            }
+                        }}
+                        className="bg-transparent outline-none text-gray-300 resize-none w-full"
+                        rows={4}
+                        placeholder="Describe your presentation in details"
+                        required
+                    />
                     <button className="ml-auto flex items-center gap-2 bg-linear-to-r from-[#CB52D4] to-indigo-600 rounded-md px-4 py-2">
                         {!loading ? (
                             'Create with AI'

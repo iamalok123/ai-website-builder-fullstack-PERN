@@ -1,0 +1,98 @@
+title AI Website Builder DB Model (PostgreSQL + Prisma)
+
+User [icon: user, color: yellow] {
+  id string pk
+  email string
+  name string
+  totalCreation int
+  credits int
+  emailVerified boolean
+  createdAt datetime
+  updatedAt datetime
+}
+
+WebsiteProject [icon: globe, color: blue] {
+  id string pk
+  name string
+  initial_prompt string
+  current_code string?
+  current_version_index string
+  isPublished boolean
+  userId string
+  createdAt datetime
+  updatedAt datetime
+}
+
+Conversation [icon: message-circle, color: green] {
+  id string pk
+  role enum(user, assistant)
+  content string
+  timestamp datetime
+  projectId string
+}
+
+Version [icon: code, color: orange] {
+  id string pk
+  code string
+  description string?
+  timestamp datetime
+  projectId string
+}
+
+Transaction [icon: dollar-sign, color: purple] {
+  id string pk
+  isPaid boolean
+  planId string
+  amount float
+  credits int
+  userId string
+  createdAt datetime
+  updatedAt datetime
+}
+
+Session [icon: clock, color: gray] {
+  id string pk
+  token string unique
+  expiresAt datetime
+  ipAddress string?
+  userAgent string?
+  userId string
+  createdAt datetime
+  updatedAt datetime
+}
+
+Account [icon: key, color: red] {
+  id string pk
+  accountId string
+  providerId string
+  userId string
+  accessToken string?
+  refreshToken string?
+  idToken string?
+  accessTokenExpiresAt datetime?
+  refreshTokenExpiresAt datetime?
+  scope string?
+  password string?
+  createdAt datetime
+  updatedAt datetime
+}
+
+Verification [icon: shield, color: lightblue] {
+  id string pk
+  identifier string
+  value string
+  expiresAt datetime
+  createdAt datetime
+  updatedAt datetime
+}
+
+// define relationships
+WebsiteProject.userId > User.id
+Conversation.projectId > WebsiteProject.id
+Version.projectId > WebsiteProject.id
+Transaction.userId > User.id
+Session.userId > User.id
+Account.userId - User.id
+
+
+

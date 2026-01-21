@@ -69,7 +69,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         // Enhance user prompt
         const promptEnhanceResponce = await openai.chat.completions.create({
-            model: "z-ai/glm-4.5-air:free",
+            model: "mistralai/devstral-2512:free",
             messages: [
                 {
                     role: "system",
@@ -112,7 +112,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         // Generate website code
         const codeGenerationResponse = await openai.chat.completions.create({
-            model: "z-ai/glm-4.5-air:free",
+            model: "mistralai/devstral-2512:free",
             messages: [
                 {
                     role: "system",
@@ -139,7 +139,36 @@ export const makeRevision = async (req: Request, res: Response) => {
         })
 
         const code = codeGenerationResponse.choices[0].message.content || '';
-        const cleanedCode = code.replace(/```[a-z]*\n?/gi, "").replace(/```$/g, "").trim();
+
+        if (!code) {
+            await prisma.conversation.create({
+                data: {
+                    role: 'assistant',
+                    content: "Unable to generate your code, please try again.",
+                    projectId
+                }
+            })
+
+            await prisma.user.update({
+                where: {
+                    id: userId
+                },
+                data: {
+                    credits: {
+                        increment: 5
+                    }
+                }
+            })
+
+            return;
+        }
+
+        // Clean code: remove markdown fences and any text before <!DOCTYPE or <html
+        let cleanedCode = code.replace(/```[a-z]*\n?/gi, "").replace(/```$/g, "").trim();
+        const htmlStartMatch = cleanedCode.match(/<!DOCTYPE\s+html|<html/i);
+        if (htmlStartMatch && htmlStartMatch.index !== undefined) {
+            cleanedCode = cleanedCode.substring(htmlStartMatch.index).trim();
+        }
 
         // Create version for the project
         const version = await prisma.version.create({
@@ -168,6 +197,7 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
+        console.log('✅ makeRevision completed - projectId:', projectId);
         return res.status(200).json({ message: "Changes made successfully." });
 
     } catch (error: any) {
@@ -243,6 +273,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
             }
         })
 
+        console.log('✅ rollbackToVersion completed - projectId:', projectId, 'versionId:', versionId);
         return res.status(200).json({ message: 'Version rolled back successfully.' });
 
     } catch (error: any) {
@@ -266,6 +297,7 @@ export const deleteProject = async (req: Request, res: Response) => {
             }
         })
 
+        console.log('✅ deleteProject completed - projectId:', projectId);
         return res.status(200).json({ message: 'Project deleted successfully.' });
 
     } catch (error: any) {
@@ -291,7 +323,8 @@ export const getProjectPreview = async (req: Request, res: Response) => {
                 userId
             },
             select: {
-                versions: true
+                versions: true,
+                current_code: true
             }
         })
 
@@ -299,6 +332,7 @@ export const getProjectPreview = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Project not found.' });
         }
 
+        console.log('✅ getProjectPreview completed - projectId:', projectId);
         return res.status(200).json({ project });
 
     } catch (error: any) {
@@ -323,6 +357,7 @@ export const getPublishedProjects = async (req: Request, res: Response) => {
             }
         })
 
+        console.log('✅ getPublishedProjects completed - found', projects.length, 'published projects');
         return res.status(200).json({ projects });
 
     } catch (error: any) {
@@ -348,6 +383,7 @@ export const getProjectById = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Project not found.' });
         }
 
+        console.log('✅ getProjectById completed - projectId:', projectId);
         return res.status(200).json({ code: project.current_code });
 
     } catch (error: any) {
@@ -394,6 +430,7 @@ export const saveProjectCode = async (req: Request, res: Response) => {
             }
         })
 
+        console.log('✅ saveProjectCode completed - projectId:', projectId);
         return res.status(200).json({ message: 'Project saved successfully.' });
 
     } catch (error: any) {
