@@ -1,4 +1,4 @@
-import { AccountSettingsCards, ChangePasswordCard, DeleteAccountCard  } from "@daveyplate/better-auth-ui"
+import { AccountSettingsCards, ChangePasswordCard, DeleteAccountCard } from "@daveyplate/better-auth-ui"
 
 const Settings = () => {
     return (
@@ -13,7 +13,7 @@ const Settings = () => {
             />
 
             <div className="w-full">
-                <ChangePasswordCard 
+                <ChangePasswordCard
                     classNames={{
                         base: "bg-black/10 ring ring-indigo-950 max-w-2xl mx-auto",
                         footer: "bg-black/10 ring ring-indigo-950"

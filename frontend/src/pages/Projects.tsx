@@ -119,7 +119,7 @@ const Projects = () => {
             <div className="flex max-sm:flex-col sm:items-center px-4 py-2 gap-4 no-scrollbar">
                 {/* Left */}
                 <div className="flex items-center gap-2 sm:min-w-90 text-nowrap">
-                    <img src="/favicon.svg" alt="logo" className="h-6 cursor-pointer" onClick={() => navigate('/')} />
+                    <img src="/logo.svg" alt="logo" className="h-6 mr-2 cursor-pointer" style={{ filter: 'brightness(1.2) sepia(1) saturate(3) hue-rotate(15deg)' }} onClick={() => navigate('/')} />
                     <div className="max-w-64 sm:max-w-xs">
                         <p className="text-sm font-medium capitalize truncate">{project.name}</p>
                         <p className="text-xs text-gray-400 -mt-0.5">Previewing last saved prompt</p>

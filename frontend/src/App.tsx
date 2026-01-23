@@ -20,7 +20,8 @@ const App = () => {
     || pathname.startsWith('/preview/');
 
   return (
-    <div>
+    // <div className="bg-white min-h-screen">
+    <div className="bg-black min-h-screen">
       <Toaster />
       {!hideNavbar && <Navbar />}
       <main>

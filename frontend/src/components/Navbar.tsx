@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { assets } from "../assets/assets";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
 import { UserButton } from "@daveyplate/better-auth-ui";
@@ -51,7 +50,7 @@ const Navbar = () => {
   return (
     <>
       {/* Background Gradient Glow On top of the navbar */}
-      <div className="absolute inset-x-0 top-0 -z-10 overflow-hidden pointer-events-none h-[700px]">
+      {/* <div className="absolute inset-x-0 top-0 -z-10 overflow-hidden pointer-events-none h-[700px]">
         <svg
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[1600px] h-[800px] opacity-60"
           viewBox="0 0 1600 800"
@@ -67,15 +66,15 @@ const Navbar = () => {
             </radialGradient>
           </defs>
         </svg>
-      </div>
+      </div> */}
 
 
       {/* Desktop Navbar - Rounded Pill Style */}
       <nav className="z-50 flex items-center justify-center w-full py-4 px-4">
-        <div className="flex items-center justify-between w-full max-w-4xl border border-slate-700 rounded-full px-4 py-2.5 text-white backdrop-blur-md bg-black/20">
+        <div className="flex items-center justify-between w-full max-w-4xl md:max-w-6xl border border-white/20 rounded-full px-4 py-2.5 text-white backdrop-blur-md bg-white/5 shadow-lg">
           {/* Logo */}
           <Link to='/'>
-            <img src={assets.logo} alt="logo" className="h-5 sm:h-7" />
+            <img src="logo.svg" alt="Logo" width={68} height={26} className="h-7 w-auto" style={{ filter: 'brightness(1.2) sepia(1) saturate(3) hue-rotate(15deg)' }} />
           </Link>
 
           {/* Desktop Nav Links */}
@@ -85,8 +84,8 @@ const Navbar = () => {
                 key={link.to}
                 to={link.to}
                 className={`px-4 py-2 rounded-full border transition-all duration-200 ${isActive(link.to)
-                  ? 'border-white/10 bg-white/10 font-medium'
-                  : 'border-transparent bg-transparent hover:border-white/10 hover:bg-white/10'
+                  ? 'border-amber-400/50 bg-amber-400/10 font-medium text-white'
+                  : 'border-transparent bg-transparent hover:border-white/20 hover:bg-white/10 text-white'
                   }`}
               >
                 {link.label}
@@ -98,27 +97,27 @@ const Navbar = () => {
           <div className="flex items-center gap-3">
             {!session?.user ? (
               <button
-                className="px-5 py-1.5 text-sm bg-indigo-600 active:scale-95 hover:bg-indigo-700 transition rounded-full"
+                className="px-5 py-1.5 text-sm bg-linear-to-r from-amber-500 to-amber-600 text-white active:scale-95 hover:from-amber-600 hover:to-amber-700 transition rounded-full font-medium"
                 onClick={() => navigate('/auth/signin')}
               >
                 Get started
               </button>
             ) : (
-                <>
-                  <button className="bg-white/10 px-5 py-1.5 text-xs sm:text-sm border text-gray-200 active:scale-95 hover:bg-white/20 transition rounded-full">
-                    Credits : 
-                    <span className="text-indigo-300 pl-1">
-                      {credits}
-                    </span>
-                  </button>
+              <>
+                <button className="bg-white/10 px-5 py-1.5 text-xs sm:text-sm border border-white/20 text-white active:scale-95 hover:bg-white/20 transition rounded-full">
+                  Credits :
+                  <span className="text-amber-400 font-medium pl-1">
+                    {credits}
+                  </span>
+                </button>
                 <UserButton size='icon' />
-                </>
+              </>
             )
 
             }
 
             <button
-              className="md:hidden active:scale-90 transition"
+              className="md:hidden active:scale-90 transition text-white"
               onClick={() => setMenuOpen(true)}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

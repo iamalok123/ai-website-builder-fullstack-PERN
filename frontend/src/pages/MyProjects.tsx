@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
 const MyProjects = () => {
-    const {data: session, isPending} = authClient.useSession();
+    const { data: session, isPending } = authClient.useSession();
     const [loading, setLoading] = useState(true);
     const [projects, setProjects] = useState<Project[]>([]);
     const navigate = useNavigate();
@@ -59,7 +59,7 @@ const MyProjects = () => {
                                 <h1 className="text-2xl font-medium text-white">My Projects</h1>
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="flex items-center gap-2 text-white px-3 sm:px-6 py-1 sm:py-2 rounded bg-linear-to-br from-indigo-500 to-indigo-600 hover:opacity-90 active:scale-95 transition-all "
+                                    className="flex items-center gap-2 text-white px-3 sm:px-6 py-1 sm:py-2 rounded bg-linear-to-br from-amber-500 to-amber-600 hover:opacity-90 active:scale-95 transition-all md:mr-4"
                                 >
                                     <PlusIcon size={18} />
                                     Create New
