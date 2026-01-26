@@ -84,13 +84,21 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
             }
         })
 
-        // Generate Website Code
-        const codeGenerationResponse = await openai.chat.completions.create({
-            model: "xiaomi/mimo-v2-flash:free",
-            messages: [
-                {
-                    role: "system",
-                    content: `
+        // Generate Website Code with Retry Logic
+        let code = '';
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts && !code) {
+            attempts++;
+            try {
+                console.log(`Generating website code... Attempt ${attempts}/${maxAttempts}`);
+                const codeGenerationResponse = await openai.chat.completions.create({
+                    model: "xiaomi/mimo-v2-flash:free",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `
                         You are an expert web developer. Create a complete, production-ready, single-page website based on this request: "${enhancedPrompt}"
 
                         CRITICAL REQUIREMENTS:
@@ -116,17 +124,26 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
 
                         The HTML should be complete and ready to render as-is with Tailwind CSS.
                     `
-                },
-                {
-                    role: "user",
-                    content: enhancedPrompt || ''
-                }
-            ]
-        })
+                        },
+                        {
+                            role: "user",
+                            content: enhancedPrompt || ''
+                        }
+                    ]
+                });
 
-        const code = codeGenerationResponse.choices[0].message.content || '';
+                code = codeGenerationResponse.choices[0].message.content || '';
+                if (code) break;
+            } catch (err) {
+                console.error(`Attempt ${attempts} failed:`, err);
+                if (attempts === maxAttempts) throw err;
+                // Wait 1 second before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
 
         if (!code) {
+            console.error('Failed to generate code after all attempts.');
             await prisma.conversation.create({
                 data: {
                     role: 'assistant',
