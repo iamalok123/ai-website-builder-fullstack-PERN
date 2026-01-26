@@ -126,6 +126,10 @@ export const makeRevision = async (req: Request, res: Response) => {
                         - Include all JavaScript in <script> tags before closing </body>
                         - Make sure it's a complete, standalone HTML document with Tailwind CSS
                         - Return the HTML Code Only, nothing else
+                        - If using external libraries (like TinyMCE, Swiper, etc.), YOU MUST INCLUDE the CDN script/link in the <head> or before </body>.
+                        - WHEN WRITING JAVASCRIPT: Do NOT use querySelector with unescaped Tailwind classes (e.g. document.querySelector('.w-1/2') will fail).
+                        - PREFERRED: Use unique IDs for JavaScript selection (e.g. id="mobile-menu" -> document.getElementById('mobile-menu')).
+                        - IF YOU MUST use classes in querySelector, properly escape special characters: document.querySelector('.w-1\\/2').
 
                         If a user gives a prompt like "Netflix clone", "Spotify clone" , "Amazon clone"  expand it to include all the sections and features that particular website should have.
 
