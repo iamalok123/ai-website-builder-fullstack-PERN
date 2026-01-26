@@ -176,6 +176,35 @@ export const makeRevision = async (req: Request, res: Response) => {
             cleanedCode = cleanedCode.substring(htmlStartMatch.index).trim();
         }
 
+        // Sanitize generated code
+        const sanitizeGeneratedCode = (html: string): string => {
+            let sanitized = html;
+
+            // Fix 1: Ensure TinyMCE is included if used
+            if (sanitized.includes('tinymce') && !sanitized.includes('src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"')) {
+                const scriptTag = '<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>';
+                if (sanitized.includes('</body>')) {
+                    sanitized = sanitized.replace('</body>', `${scriptTag}</body>`);
+                } else {
+                    sanitized += scriptTag;
+                }
+            }
+
+            // Fix 2: Auto-fix querySelector syntax for tailwind classes with slashes (e.g. w-1/2)
+            // We ONLY escape slashes, not colons, to avoid breaking valid CSS pseudo-classes like :hover
+            sanitized = sanitized.replace(/document\.querySelector\(['"](\.[^'"]+)['"]\)/g, (match, selector) => {
+                if (selector.includes('/')) {
+                    const escaped = selector.replace(/\//g, '\\\\/');
+                    return `document.querySelector('${escaped}')`;
+                }
+                return match;
+            });
+
+            return sanitized;
+        };
+
+        cleanedCode = sanitizeGeneratedCode(cleanedCode);
+
         // Create version for the project
         const version = await prisma.version.create({
             data: {
