@@ -38,7 +38,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
     try {
         // Enhance User Prompt
         const enhanceUserPrompt = await openai.chat.completions.create({
-            model: "mistralai/devstral-2512:free",
+            model: "xiaomi/mimo-v2-flash:free",
             messages: [
                 {
                     role: "system",
@@ -52,6 +52,8 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
                         4. Including modern web design best practices
                         5. Mentioning responsive design requirements
                         6. Adding any missing but important elements
+
+                        If a user gives a prompt like "Netflix clone", "Spotify clone" , "Amazon clone"  expand it to include all the sections and features that particular website should have.
 
                         Return ONLY the enhanced prompt, nothing else. Make it detailed but concise (2-3 paragraphs max).
                     `
@@ -84,7 +86,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
 
         // Generate Website Code
         const codeGenerationResponse = await openai.chat.completions.create({
-            model: "mistralai/devstral-2512:free",
+            model: "xiaomi/mimo-v2-flash:free",
             messages: [
                 {
                     role: "system",
@@ -102,7 +104,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
                             - Use Tailwind animations and transitions (animate-*, transition-*)
                             - Include all necessary meta tags
                             - Use Google Fonts CDN if needed for custom fonts
-                            - Use placeholder images from https://placehold.co/600x400
+                            - Use placeholder images from related images from google 
                             - Use Tailwind gradient classes for beautiful backgrounds
                             - Make sure all buttons, cards, and components use Tailwind styling
 

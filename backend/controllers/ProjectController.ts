@@ -69,7 +69,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         // Enhance user prompt
         const promptEnhanceResponce = await openai.chat.completions.create({
-            model: "mistralai/devstral-2512:free",
+            model: "xiaomi/mimo-v2-flash:free",
             messages: [
                 {
                     role: "system",
@@ -112,7 +112,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         // Generate website code
         const codeGenerationResponse = await openai.chat.completions.create({
-            model: "mistralai/devstral-2512:free",
+            model: "xiaomi/mimo-v2-flash:free",
             messages: [
                 {
                     role: "system",
@@ -126,6 +126,8 @@ export const makeRevision = async (req: Request, res: Response) => {
                         - Include all JavaScript in <script> tags before closing </body>
                         - Make sure it's a complete, standalone HTML document with Tailwind CSS
                         - Return the HTML Code Only, nothing else
+
+                        If a user gives a prompt like "Netflix clone", "Spotify clone" , "Amazon clone"  expand it to include all the sections and features that particular website should have.
 
                         Apply the requested changes while maintaining the Tailwind CSS styling approach.
                     `
