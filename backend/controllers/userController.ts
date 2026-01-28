@@ -38,7 +38,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
     try {
         // Enhance User Prompt
         const enhanceUserPrompt = await openai.chat.completions.create({
-            model: "zgoogle/gemma-3-27b-it:free",
+            model: "google/gemma-3-27b-it:free",
             messages: [
                 {
                     role: "system",
