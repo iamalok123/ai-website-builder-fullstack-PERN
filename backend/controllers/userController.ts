@@ -38,7 +38,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
     try {
         // Enhance User Prompt
         const enhanceUserPrompt = await openai.chat.completions.create({
-            model: "mistralai/devstral-2512:free",
+            model: "z-ai/glm-4.5-air:free",
             messages: [
                 {
                     role: "system",
@@ -94,7 +94,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
             try {
                 console.log(`Generating website code... Attempt ${attempts}/${maxAttempts}`);
                 const codeGenerationResponse = await openai.chat.completions.create({
-                    model: "mistralai/devstral-2512:free",
+                    model: "z-ai/glm-4.5-air:free",
                     messages: [
                         {
                             role: "system",
