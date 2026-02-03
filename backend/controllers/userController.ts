@@ -38,7 +38,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
     try {
         // Enhance User Prompt
         const enhanceUserPrompt = await openai.chat.completions.create({
-            model: "google/gemma-3-27b-it:free",
+            model: "arcee-ai/trinity-large-preview:free",
             messages: [
                 {
                     role: "system",
@@ -94,7 +94,7 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
             try {
                 console.log(`Generating website code... Attempt ${attempts}/${maxAttempts}`);
                 const codeGenerationResponse = await openai.chat.completions.create({
-                    model: "google/gemma-3-27b-it:free",
+                    model: "arcee-ai/trinity-large-preview:free",
                     messages: [
                         {
                             role: "system",
