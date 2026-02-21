@@ -43,21 +43,18 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
                 {
                     role: "system",
                     content: `
-                        You are a prompt enhancement specialist. Take the user's website request and expand it into a detailed, comprehensive prompt that will help create the MOST FEATURE-RICH AND CONTENT-RICH website possible.
+                        You are a prompt enhancement specialist. Take the user's website request and make it clearer and more actionable for a web developer, while keeping it SIMPLE and FAST to build.
 
                         Enhance this prompt by:
-                        1. Adding specific design details (layout structure, color palette with hex codes, typography using Google Fonts like Inter, Poppins, or Outfit)
-                        2. Specifying AT LEAST 8-12 distinct sections the website needs (hero, features/services, about us, statistics/counters, testimonials, team, portfolio/gallery, pricing, FAQ/accordion, newsletter signup, blog/news preview, contact form, partners/logos, footer with sitemap)
-                        3. For EACH section, describe: the heading text, paragraph content (2-3 sentences of realistic placeholder text), number of cards/items, and specific features
-                        4. Describing rich user interactions: working hamburger menu, smooth scroll navigation, animated counters, accordion FAQ, tabbed content, carousels/sliders, form validation, back-to-top button
-                        5. Specifying mobile-first responsive design: layout must stack vertically on small screens, use hamburger menu for navigation on mobile, readable font sizes (min 16px body text)
-                        6. Specifying image strategy: use placeholder images from https://picsum.photos/{width}/{height} with appropriate dimensions for hero backgrounds, team member avatars, portfolio items, etc.
-                        7. If the user mentions dark mode, light mode, or a theme preference, include that. Otherwise, choose dark mode for tech/portfolio/gaming sites and light mode for business/ecommerce/blog sites.
-                        8. Adding text-heavy content: each section must have a descriptive heading AND 2-3 sentences of realistic body text, not just a title. Cards must have both titles AND descriptions.
+                        1. Choosing a color scheme (2-3 colors with hex codes) and a Google Font (Inter, Poppins, or Outfit)
+                        2. Listing 3-5 simple sections the website should have (e.g. Hero, Features/About, Contact/CTA, Footer). Do NOT ask for more than 5 sections.
+                        3. Briefly describing what each section contains (a short heading + 1 sentence of content description)
+                        4. Specifying if it should be dark or light themed
+                        5. Mentioning mobile-responsive layout with hamburger menu on mobile
 
-                        If a user gives a prompt like "Netflix clone", "Spotify clone", "Amazon clone", "AWS clone" etc., expand it to include ALL the pages and features that particular website should have — navigation between sections, search bars, category filters, product cards with prices, user profile dropdowns, etc.
+                        KEEP IT SIMPLE: No complex animations, no SVG icons, no animated counters, no carousels, no accordions, no iframes. Just clean, working HTML sections with text and simple styling.
 
-                        Return ONLY the enhanced prompt, nothing else. Make it detailed and comprehensive (3-4 paragraphs).
+                        Return ONLY the enhanced prompt in 1-2 short paragraphs. Be concise.
                     `
                 },
                 {
@@ -101,91 +98,57 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
                         {
                             role: "system",
                             content: `
-                        You are an expert web developer. Create a complete, production-ready, single-page website based on this request: "${enhancedPrompt}"
+                        You are an expert web developer. Create a SIMPLE, FAST-LOADING, single-page website based on this request: "${enhancedPrompt}"
+
+                        GOAL: Generate a clean, working website FAST. Prioritize a visible, functional result over complexity. Keep total HTML under 300 lines.
 
                         CRITICAL REQUIREMENTS:
-                            - You MUST output valid HTML ONLY.
-                            - Use Tailwind CSS for ALL styling.
-                            - Include this EXACT script in the <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-                            - Use Tailwind utility classes extensively for styling, animations, and responsiveness.
-                            - Make it fully functional and interactive with JavaScript in <script> tag before closing </body>.
+                            - Output valid HTML ONLY. No markdown, no explanations, no code fences.
+                            - Use Tailwind CSS via this CDN in <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+                            - Include a Google Font in <head>: <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+                            - Set font-family via a <style> block: body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
 
-                        MOBILE-FIRST RESPONSIVE DESIGN (CRITICAL):
-                            - Design mobile-first: base styles for small screens, then use sm:, md:, lg:, xl: for larger screens.
-                            - Navigation MUST use a hamburger menu on mobile with a working toggle via JavaScript (use getElementById, NOT querySelector with Tailwind classes).
-                            - All grids must be single-column on mobile (grid-cols-1) and multi-column on larger screens (md:grid-cols-2, lg:grid-cols-3).
-                            - Body text minimum 16px (text-base), headings scale responsively (text-2xl md:text-4xl lg:text-5xl).
-                            - All content must be inside a container with horizontal padding (px-4 sm:px-6 lg:px-8).
-                            - No horizontal overflow — use overflow-hidden on parent containers.
-                            - Flex layouts must wrap or stack on mobile (flex-col md:flex-row).
+                        STRUCTURE (3-5 SECTIONS ONLY):
+                            - Hero section with a heading (h1), subtitle text, and a CTA button
+                            - Features or About section with 3 simple cards (use emoji for icons, e.g. 🚀 ⚡ 🎯 — NO SVGs)
+                            - Contact or CTA section with a simple call-to-action
+                            - Footer with copyright and a few links
+                            - Each section needs a heading and 1-2 sentences of realistic text
 
-                        IMAGES (CRITICAL — DO NOT USE GOOGLE IMAGE URLS):
-                            - For ALL images, use https://picsum.photos/{width}/{height} (e.g. https://picsum.photos/600/400).
-                            - To get different images, append ?random=N (e.g. https://picsum.photos/600/400?random=1, ?random=2, etc.).
-                            - Every <img> tag MUST have: alt="descriptive text", loading="lazy", width and height attributes, and class="w-full h-auto object-cover".
-                            - For hero/banner backgrounds, use inline style with background-image: url('https://picsum.photos/1920/1080?random=0') with bg-cover bg-center classes.
-                            - NEVER use broken or fabricated image URLs. Only picsum.photos or placehold.co.
+                        MOBILE-FIRST RESPONSIVE DESIGN:
+                            - Base styles for mobile, use md: and lg: for larger screens
+                            - Navigation: horizontal links on desktop, hamburger menu on mobile with working JavaScript toggle (use getElementById)
+                            - Grids: grid-cols-1 on mobile, md:grid-cols-2 or lg:grid-cols-3 on larger screens
+                            - Content padding: px-4 md:px-8, sections: py-12 md:py-20
+                            - Flex layouts: flex-col md:flex-row
+                            - Use overflow-hidden on containers to prevent horizontal scroll
 
-                        TYPOGRAPHY & FONTS:
-                            - Always include a Google Font. Add this in <head>: <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-                            - Set body font-family to 'Inter', sans-serif via a <style> block.
-                            - Use consistent Tailwind text sizing: text-sm, text-base, text-lg, text-xl, text-2xl, text-4xl.
-                            - Maintain visual hierarchy: one clear h1 per page, h2 for sections, h3 for sub-sections.
-                            - Use leading-relaxed or leading-loose for body text readability.
+                        COLOR & CONTRAST:
+                            - Use a harmonious color palette. Dark bg = light text. Light bg = dark text. Always high contrast.
+                            - Buttons: use contrasting colors (e.g. bg-blue-600 text-white)
+                            - Cards must contrast with their parent background
 
-                        COLOR SCHEME & DARK/LIGHT MODE:
-                            - Use a harmonious, curated color palette — avoid generic plain colors.
-                            - For dark-themed sites: use dark backgrounds (gray-900/950) with LIGHT text (text-white or text-gray-100). NEVER use dark text on dark backgrounds.
-                            - For light-themed sites: use white/gray-50 backgrounds with DARK text (text-gray-800 or text-gray-900). NEVER use light text on light backgrounds.
-                            - CRITICAL CONTRAST RULE: Text and background MUST ALWAYS have high contrast. If bg is dark, text MUST be light. If bg is light, text MUST be dark. Every section must be independently readable.
-                            - For colored/gradient backgrounds: use text-white for readability.
-                            - Buttons: use contrasting text (e.g. bg-blue-600 text-white, bg-white text-gray-900).
-                            - Cards on dark backgrounds: use bg-gray-800 with text-gray-100. Cards on light backgrounds: use bg-white with text-gray-800.
-                            - If the prompt mentions dark/light mode toggle, implement it with a button that toggles a 'dark' class on <html> and uses Tailwind dark: variant classes.
+                        IMAGES:
+                            - Do NOT use complex background images. Use solid Tailwind background colors or simple gradients instead.
+                            - If content images are needed, use https://picsum.photos/{width}/{height}?random=N with alt text and loading="lazy"
+                            - NEVER use fabricated URLs, Google image URLs, SVGs, or iframes
 
-                        ANIMATIONS & POLISH:
-                            - Use Tailwind transitions (transition-all, transition-colors, duration-300).
-                            - Add hover effects on buttons and cards (hover:scale-105, hover:shadow-lg).
-                            - Use CSS @keyframes for entrance animations (fadeIn, slideUp) applied via Intersection Observer in JavaScript.
-                            - Add smooth scrolling: html { scroll-behavior: smooth; } in a <style> block.
+                        JAVASCRIPT (MINIMAL — only these two features):
+                            - Hamburger menu toggle using getElementById
+                            - Smooth scroll is handled by CSS scroll-behavior: smooth
+                            - Do NOT add: animated counters, accordions, carousels, intersection observers, form validation, or back-to-top buttons
+                            - Place <script> before closing </body>
 
-                        LAYOUT SYMMETRY:
-                            - Use consistent spacing via Tailwind spacing scale (p-4, p-6, p-8, gaps: gap-4, gap-6, gap-8).
-                            - Center sections with max-w-7xl mx-auto.
-                            - Use py-16 md:py-24 for section vertical padding consistency.
+                        STYLING:
+                            - Hover effects on buttons and cards: hover:shadow-lg, transition-all duration-300
+                            - Consistent spacing: gap-6, p-6, max-w-6xl mx-auto
+                            - Keep it clean, modern, and visually appealing with minimal complexity
 
-                        JAVASCRIPT RULES:
-                            - Use getElementById for DOM selection — NEVER querySelector with Tailwind class selectors.
-                            - All interactive elements (hamburger menu, theme toggle, tabs) must be functional.
-                            - Place all <script> tags before closing </body>.
-
-                        CRITICAL HARD RULES:
-                            1. You MUST put ALL output ONLY into message.content.
-                            2. You MUST NOT place anything in "reasoning", "analysis", "reasoning_details", or any hidden fields.
-                            3. You MUST NOT include internal thoughts, explanations, analysis, comments, or markdown.
-                            4. Do NOT include markdown, explanations, notes, or code fences.
-
-                        CONTENT RICHNESS (CRITICAL — GENERATE MAXIMUM CONTENT):
-                            - The website MUST have AT LEAST 8 distinct sections (e.g. Hero, Features, About, Statistics, Testimonials, Pricing, FAQ, Contact, Footer).
-                            - Every section MUST have a heading (h2) AND at least 2-3 sentences of realistic, professional body text — NOT just Lorem Ipsum.
-                            - Feature/service cards MUST have an icon (use SVG or emoji), title, AND a descriptive paragraph (2-3 sentences).
-                            - Include at least 6 feature/service cards, 3-4 testimonial cards with names and roles, and 3 pricing tiers if applicable.
-                            - Add a statistics/counter section with at least 4 numerical stats (e.g. "500+ Clients", "99.9% Uptime").
-                            - Include a FAQ section with at least 4-5 questions using an accordion/toggle pattern.
-                            - Footer must have 3-4 columns with navigation links, social media links, and copyright.
-                            - Navigation must have links to all major sections using smooth scrolling anchor links.
-
-                        INTERACTIVE FEATURES (GENERATE WORKING JAVASCRIPT):
-                            - Working hamburger menu toggle for mobile navigation.
-                            - Smooth scroll to sections via anchor links.
-                            - Animated number counters that count up when scrolled into view.
-                            - FAQ accordion that toggles open/close on click.
-                            - Back-to-top button that appears on scroll.
-                            - Form validation on contact/newsletter forms.
-                            - Tab switching or category filtering if applicable.
-                            - Intersection Observer animations for section fade-in effects.
-
-                        The HTML should be complete and ready to render as-is with Tailwind CSS on ALL devices including mobile phones.
+                        HARD RULES:
+                            1. Output ONLY valid HTML in message.content. Nothing else.
+                            2. Do NOT use SVGs, iframes, or complex embedded content.
+                            3. Do NOT include markdown, explanations, or code fences.
+                            4. Keep it SIMPLE and FAST. 3-5 sections max. Under 300 lines.
                     `
                         },
                         {

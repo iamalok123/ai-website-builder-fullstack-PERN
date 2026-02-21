@@ -74,19 +74,14 @@ export const makeRevision = async (req: Request, res: Response) => {
                 {
                     role: "system",
                     content: `
-                        You are a prompt enhancement specialist. The user wants to make changes to their website. Enhance their request to be more specific, actionable, and content-rich for a web developer.
+                        You are a prompt enhancement specialist. The user wants to make changes to their website. Make their request clearer and more specific for a web developer.
 
-                        Enhance this by:
-                        1. Being specific about what elements to change, add, or remove
-                        2. Mentioning design details (colors with hex codes, spacing using Tailwind scale, typography sizes)
-                        3. Clarifying the desired outcome including responsive behavior (mobile/tablet/desktop)
-                        4. Using clear technical terms (Tailwind classes, CSS properties)
-                        5. If images are involved, specify using https://picsum.photos/{width}/{height} URLs
-                        6. If layout changes are requested, specify mobile-first stacking behavior
-                        7. If the user asks for "more pages" or "more features", expand this into specific sections to add (e.g., testimonials, FAQ accordion, pricing table, team section, statistics counters, blog preview, newsletter signup)
-                        8. For any new sections, describe the heading, body text content (2-3 realistic sentences), and number of items/cards needed
+                        Enhance by:
+                        1. Being specific about what to change, add, or remove
+                        2. Mentioning relevant Tailwind classes or colors if applicable
+                        3. Keeping it simple — no complex animations, SVGs, or iframes
 
-                        Return ONLY the enhanced request, nothing else. Keep it concise (2-3 sentences).
+                        Return ONLY the enhanced request in 1-2 concise sentences. Nothing else.
                     `
                 },
                 {
@@ -123,43 +118,17 @@ export const makeRevision = async (req: Request, res: Response) => {
                     content: `
                         You are an expert web developer. Apply the user's requested changes to the existing website code.
 
-                        CRITICAL REQUIREMENTS:
-                        - Return ONLY the complete updated HTML code with the requested changes.
-                        - Use Tailwind CSS for ALL styling.
-                        - Use Tailwind utility classes for all styling changes.
-                        - Include all JavaScript in <script> tags before closing </body>.
-                        - Make sure it's a complete, standalone HTML document with Tailwind CSS.
-                        - Return the HTML Code Only, nothing else.
-                        - If using external libraries (like TinyMCE, Swiper, etc.), YOU MUST INCLUDE the CDN script/link in the <head> or before </body>.
-
-                        MOBILE-FIRST RESPONSIVE DESIGN:
-                        - PRESERVE all existing responsive classes when making changes.
-                        - Any new elements must use mobile-first design: base styles for mobile, then sm:, md:, lg:, xl: for larger screens.
-                        - New grids should use grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pattern.
-                        - New flex layouts should use flex-col md:flex-row pattern.
-                        - New content must have horizontal padding (px-4 sm:px-6 lg:px-8).
-
-                        IMAGES:
-                        - For any new images, use https://picsum.photos/{width}/{height}?random=N.
-                        - Every <img> must have alt, loading="lazy", width, height, and class="w-full h-auto object-cover".
-                        - NEVER use fabricated Google image URLs.
-
-                        COLOR CONTRAST (CRITICAL):
-                        - Text and background MUST ALWAYS have high contrast. Dark bg = light text (text-white/text-gray-100). Light bg = dark text (text-gray-800/text-gray-900).
-                        - NEVER use same-tone text and background (e.g. dark text on dark bg, or light text on light bg).
-                        - Colored/gradient backgrounds must use text-white. Cards must contrast with their parent section background.
-
-                        JAVASCRIPT RULES:
-                        - Use getElementById for DOM selection — NEVER querySelector with Tailwind class selectors.
-                        - PREFERRED: Use unique IDs (e.g. id="mobile-menu" -> document.getElementById('mobile-menu')).
-
-                        CONTENT RICHNESS FOR NEW SECTIONS:
-                        - Any new section MUST have a heading (h2) AND 2-3 sentences of realistic body text.
-                        - New cards/items MUST have icons (SVG or emoji), titles, AND descriptive paragraphs.
-                        - Use realistic, professional placeholder text — NOT Lorem Ipsum.
-                        - If adding interactive elements: implement working JavaScript (accordion toggles, counters, form validation, etc.).
-
-                        Apply the requested changes while maintaining mobile responsiveness, content richness, and the existing Tailwind CSS styling approach.
+                        RULES:
+                        - Return ONLY the complete updated HTML code. No markdown, no explanations.
+                        - Use Tailwind CSS for all styling.
+                        - Keep all JavaScript in <script> tags before closing </body>.
+                        - Use getElementById for DOM selection — never querySelector with Tailwind classes.
+                        - Preserve mobile responsiveness: grids stack on mobile (grid-cols-1), flex uses flex-col md:flex-row.
+                        - Color contrast: dark bg = light text, light bg = dark text. Always readable.
+                        - For new images, use https://picsum.photos/{width}/{height}?random=N. Never fabricated URLs.
+                        - Do NOT add SVGs, iframes, animated counters, carousels, or complex animations.
+                        - Use emoji for icons if needed (🚀 ⚡ 🎯). Keep it simple.
+                        - Keep the result concise and fast-loading.
                     `
                 },
                 {
