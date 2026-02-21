@@ -74,15 +74,19 @@ export const makeRevision = async (req: Request, res: Response) => {
                 {
                     role: "system",
                     content: `
-                        You are a prompt enhancement specialist. The user wants to make changes to their website. Enhance their request to be more specific and actionable for a web developer.
+                        You are a prompt enhancement specialist. The user wants to make changes to their website. Enhance their request to be more specific, actionable, and content-rich for a web developer.
 
                         Enhance this by:
-                        1. Being specific about what elements to change
-                        2. Mentioning design details (colors, spacing, sizes)
-                        3. Clarifying the desired outcome
-                        4. Using clear technical terms
+                        1. Being specific about what elements to change, add, or remove
+                        2. Mentioning design details (colors with hex codes, spacing using Tailwind scale, typography sizes)
+                        3. Clarifying the desired outcome including responsive behavior (mobile/tablet/desktop)
+                        4. Using clear technical terms (Tailwind classes, CSS properties)
+                        5. If images are involved, specify using https://picsum.photos/{width}/{height} URLs
+                        6. If layout changes are requested, specify mobile-first stacking behavior
+                        7. If the user asks for "more pages" or "more features", expand this into specific sections to add (e.g., testimonials, FAQ accordion, pricing table, team section, statistics counters, blog preview, newsletter signup)
+                        8. For any new sections, describe the heading, body text content (2-3 realistic sentences), and number of items/cards needed
 
-                        Return ONLY the enhanced request, nothing else. Keep it concise (1-2 sentences).
+                        Return ONLY the enhanced request, nothing else. Keep it concise (2-3 sentences).
                     `
                 },
                 {
@@ -117,23 +121,45 @@ export const makeRevision = async (req: Request, res: Response) => {
                 {
                     role: "system",
                     content: `
-                        You are an expert web developer. 
+                        You are an expert web developer. Apply the user's requested changes to the existing website code.
 
                         CRITICAL REQUIREMENTS:
                         - Return ONLY the complete updated HTML code with the requested changes.
-                        - Use Tailwind CSS for ALL styling (NO custom CSS).
+                        - Use Tailwind CSS for ALL styling.
                         - Use Tailwind utility classes for all styling changes.
-                        - Include all JavaScript in <script> tags before closing </body>
-                        - Make sure it's a complete, standalone HTML document with Tailwind CSS
-                        - Return the HTML Code Only, nothing else
+                        - Include all JavaScript in <script> tags before closing </body>.
+                        - Make sure it's a complete, standalone HTML document with Tailwind CSS.
+                        - Return the HTML Code Only, nothing else.
                         - If using external libraries (like TinyMCE, Swiper, etc.), YOU MUST INCLUDE the CDN script/link in the <head> or before </body>.
-                        - WHEN WRITING JAVASCRIPT: Do NOT use querySelector with unescaped Tailwind classes (e.g. document.querySelector('.w-1/2') will fail).
-                        - PREFERRED: Use unique IDs for JavaScript selection (e.g. id="mobile-menu" -> document.getElementById('mobile-menu')).
-                        - IF YOU MUST use classes in querySelector, properly escape special characters: document.querySelector('.w-1\\/2').
 
-                        If a user gives a prompt like "Netflix clone", "Spotify clone" , "Amazon clone"  expand it to include all the sections and features that particular website should have.
+                        MOBILE-FIRST RESPONSIVE DESIGN:
+                        - PRESERVE all existing responsive classes when making changes.
+                        - Any new elements must use mobile-first design: base styles for mobile, then sm:, md:, lg:, xl: for larger screens.
+                        - New grids should use grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pattern.
+                        - New flex layouts should use flex-col md:flex-row pattern.
+                        - New content must have horizontal padding (px-4 sm:px-6 lg:px-8).
 
-                        Apply the requested changes while maintaining the Tailwind CSS styling approach.
+                        IMAGES:
+                        - For any new images, use https://picsum.photos/{width}/{height}?random=N.
+                        - Every <img> must have alt, loading="lazy", width, height, and class="w-full h-auto object-cover".
+                        - NEVER use fabricated Google image URLs.
+
+                        COLOR CONTRAST (CRITICAL):
+                        - Text and background MUST ALWAYS have high contrast. Dark bg = light text (text-white/text-gray-100). Light bg = dark text (text-gray-800/text-gray-900).
+                        - NEVER use same-tone text and background (e.g. dark text on dark bg, or light text on light bg).
+                        - Colored/gradient backgrounds must use text-white. Cards must contrast with their parent section background.
+
+                        JAVASCRIPT RULES:
+                        - Use getElementById for DOM selection — NEVER querySelector with Tailwind class selectors.
+                        - PREFERRED: Use unique IDs (e.g. id="mobile-menu" -> document.getElementById('mobile-menu')).
+
+                        CONTENT RICHNESS FOR NEW SECTIONS:
+                        - Any new section MUST have a heading (h2) AND 2-3 sentences of realistic body text.
+                        - New cards/items MUST have icons (SVG or emoji), titles, AND descriptive paragraphs.
+                        - Use realistic, professional placeholder text — NOT Lorem Ipsum.
+                        - If adding interactive elements: implement working JavaScript (accordion toggles, counters, form validation, etc.).
+
+                        Apply the requested changes while maintaining mobile responsiveness, content richness, and the existing Tailwind CSS styling approach.
                     `
                 },
                 {
