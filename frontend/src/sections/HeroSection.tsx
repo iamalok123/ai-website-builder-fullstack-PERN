@@ -145,19 +145,19 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            <h1 className="text-center text-5xl/17 md:text-[64px]/20 font-semibold max-w-2xl m-1 max-sm:mt-8 text-white">
-                Build custom apps with AI
+            <h1 className="text-center text-5xl/17 md:text-[64px]/20 font-semibold max-w-2xl mx-auto m-1 max-sm:mt-8 text-white">
+                Build professional websites with AI
             </h1>
 
             <p className="text-center text-base text-white max-w-md mt-2">
-                "No code. No design skills. Just describe your idea and launch instantly."
+                "No code. No design skills. Just describe your idea and build instantly."
             </p>
 
             <form
                 onSubmit={onSubmitHandler}
-                className="focus-within:ring-2 focus-within:ring-amber-400/50 border border-white/60 bg-white/5 backdrop-blur-md rounded-xl max-w-3xl max-sm:max-w-auto w-full mt-8 shadow-lg mx-3">
+                className="focus-within:ring-2 focus-within:ring-amber-400/50 border border-white/60 bg-white/5 backdrop-blur-md rounded-xl max-w-3xl max-sm:max-w-full w-full mt-8 shadow-lg mx-3">
                 <textarea
-                    className="w-full max-sm:w-auto resize-none p-4 outline-none text-white placeholder:text-white/60 bg-transparent"
+                    className="w-full resize-none p-4 max-sm:mx-2 outline-none text-white placeholder:text-white/60 bg-transparent wrap-break-word"
                     placeholder={`Create a ${animatedPlaceholder}`}
                     rows={3}
                     minLength={10}
