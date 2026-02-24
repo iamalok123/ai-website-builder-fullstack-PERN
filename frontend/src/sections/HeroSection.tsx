@@ -124,9 +124,9 @@ export default function HeroSection() {
     const animatedPlaceholder = placeholders[textIndex].substring(0, charIndex);
 
     return (
-        <section id="home" className="flex flex-col items-center justify-center">
+        <section id="home" className="flex flex-col items-center justify-center px-4">
             <div className="absolute top-25 -z-1 left-1/4 size-72 bg-purple-600 blur-[300px]"></div>
-            <div className="flex items-center mt-16 max-sm:mt-22">
+            <div className="flex items-center mt-14 max-sm:mt-22">
                 <div className="flex -space-x-2 pr-3">
                     <img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=200" alt="image" className="size-7 rounded-full border-2 border-white hover:-translate-y-0.5 transition z-1" />
                     <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200" alt="image" className="size-7 rounded-full border-2 border-white hover:-translate-y-0.5 transition z-2" />
