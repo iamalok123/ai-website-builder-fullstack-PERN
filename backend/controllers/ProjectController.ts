@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import openai from "../configs/openai.js";
+import { sanitizeAndFixHtml, AI_MODELS } from "../lib/sanitizeHtml.js";
 
 
 
@@ -68,30 +69,27 @@ export const makeRevision = async (req: Request, res: Response) => {
         })
 
         // Enhance user prompt
-        const promptEnhanceResponce = await openai.chat.completions.create({
-            model: "arcee-ai/trinity-large-preview:free",
-            messages: [
-                {
-                    role: "system",
-                    content: `
-                        You are a prompt enhancement specialist. The user wants to make changes to their website. Make their request clearer and more specific for a web developer.
-
-                        Enhance by:
-                        1. Being specific about what to change, add, or remove
-                        2. Mentioning relevant Tailwind classes or colors if applicable
-                        3. Keeping it simple — no complex animations, SVGs, or iframes
-
-                        Return ONLY the enhanced request in 1-2 concise sentences. Nothing else.
-                    `
-                },
-                {
-                    role: "user",
-                    content: `User's request: "${message}"`
-                }
-            ]
-        })
-
-        const enhancedPrompt = promptEnhanceResponce.choices[0].message.content;
+        let enhancedPrompt = message;
+        try {
+            const promptEnhanceResponce = await openai.chat.completions.create({
+                model: AI_MODELS[0],
+                temperature: 0.7,
+                max_tokens: 300,
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a prompt enhancer for website edits. Make the user's change request clearer and more specific for a web developer. Mention specific Tailwind classes or colors if relevant. Keep it simple — no complex animations, SVGs, or iframes. Return ONLY the enhanced request in 1-2 concise sentences.`
+                    },
+                    {
+                        role: "user",
+                        content: `User's request: "${message}"`
+                    }
+                ]
+            });
+            enhancedPrompt = promptEnhanceResponce.choices[0].message.content || message;
+        } catch (enhanceErr) {
+            console.warn('Prompt enhancement failed, using original message:', enhanceErr);
+        }
 
         await prisma.conversation.create({
             data: {
@@ -109,37 +107,58 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
-        // Generate website code
-        const codeGenerationResponse = await openai.chat.completions.create({
-            model: "arcee-ai/trinity-large-preview:free",
-            messages: [
-                {
-                    role: "system",
-                    content: `
-                        You are an expert web developer. Apply the user's requested changes to the existing website code.
+        // Generate website code with retry logic + model rotation
+        let code = '';
+        let attempts = 0;
+        const maxAttempts = 3;
 
-                        RULES:
-                        - Return ONLY the complete updated HTML code. No markdown, no explanations.
-                        - Use Tailwind CSS for all styling.
-                        - Keep all JavaScript in <script> tags before closing </body>.
-                        - Use getElementById for DOM selection — never querySelector with Tailwind classes.
-                        - Preserve mobile responsiveness: grids stack on mobile (grid-cols-1), flex uses flex-col md:flex-row.
-                        - Color contrast: dark bg = light text, light bg = dark text. Always readable.
-                        - For new images, use https://picsum.photos/{width}/{height}?random=N. Never fabricated URLs.
-                        - Do NOT add SVGs, iframes, animated counters, carousels, or complex animations.
-                        - Use emoji for icons if needed (🚀 ⚡ 🎯). Keep it simple.
-                        - Keep the result concise and fast-loading.
-                    `
-                },
-                {
-                    role: "user",
-                    content: `Here is the current website code: "${currentProject.current_code}" 
-                            The user wants these changes: "${enhancedPrompt}"`
+        while (attempts < maxAttempts && !code) {
+            const model = AI_MODELS[attempts % AI_MODELS.length];
+            attempts++;
+            try {
+                console.log(`Generating revision with ${model}... Attempt ${attempts}/${maxAttempts}`);
+                const codeGenerationResponse = await openai.chat.completions.create({
+                    model,
+                    temperature: 0.7,
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are a web developer. Apply the user's requested changes to the existing HTML website code. Output ONLY the complete updated HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
+
+RULES:
+- Use Tailwind CSS for all styling
+- Keep <meta name="viewport" content="width=device-width, initial-scale=1.0"> in <head>
+- Keep Tailwind CDN: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+- Maintain mobile-first responsive design: grid-cols-1 on mobile, md: breakpoints for larger screens
+- Flex layouts: flex-col md:flex-row
+- Add overflow-hidden on containers to prevent horizontal scroll
+- Use getElementById for DOM selection — never querySelector with Tailwind classes
+- High contrast: dark bg = light text, light bg = dark text
+- Images: https://picsum.photos/{w}/{h}?random=N only. No fabricated URLs
+- Icons: emoji only (🚀 ⚡ 🎯). NO SVGs, NO iframes
+- JS: Only hamburger menu toggle with getElementById. No complex JS
+- Keep the result concise and fast-loading
+- Output ONLY the complete HTML. Nothing else.`
+                        },
+                        {
+                            role: "user",
+                            content: `Current website code:\n${currentProject.current_code}\n\nRequested changes: ${enhancedPrompt}`
+                        }
+                    ]
+                });
+
+                const result = codeGenerationResponse.choices[0].message.content || '';
+                if (result && (result.includes('<html') || result.includes('<!DOCTYPE') || result.includes('<head'))) {
+                    code = result;
+                    break;
                 }
-            ]
-        })
-
-        const code = codeGenerationResponse.choices[0].message.content || '';
+                console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
+            } catch (err) {
+                console.error(`Attempt ${attempts} with ${model} failed:`, err);
+                if (attempts === maxAttempts) throw err;
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+        }
 
         if (!code) {
             await prisma.conversation.create({
@@ -164,41 +183,8 @@ export const makeRevision = async (req: Request, res: Response) => {
             return;
         }
 
-        // Clean code: remove markdown fences and any text before <!DOCTYPE or <html
-        let cleanedCode = code.replace(/```[a-z]*\n?/gi, "").replace(/```$/g, "").trim();
-        const htmlStartMatch = cleanedCode.match(/<!DOCTYPE\s+html|<html/i);
-        if (htmlStartMatch && htmlStartMatch.index !== undefined) {
-            cleanedCode = cleanedCode.substring(htmlStartMatch.index).trim();
-        }
-
-        // Sanitize generated code
-        const sanitizeGeneratedCode = (html: string): string => {
-            let sanitized = html;
-
-            // Fix 1: Ensure TinyMCE is included if used
-            if (sanitized.includes('tinymce') && !sanitized.includes('src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"')) {
-                const scriptTag = '<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>';
-                if (sanitized.includes('</body>')) {
-                    sanitized = sanitized.replace('</body>', `${scriptTag}</body>`);
-                } else {
-                    sanitized += scriptTag;
-                }
-            }
-
-            // Fix 2: Auto-fix querySelector syntax for tailwind classes with slashes (e.g. w-1/2)
-            // We ONLY escape slashes, not colons, to avoid breaking valid CSS pseudo-classes like :hover
-            sanitized = sanitized.replace(/document\.querySelector\(['"](\.[^'"]+)['"]\)/g, (match, selector) => {
-                if (selector.includes('/')) {
-                    const escaped = selector.replace(/\//g, '\\\\/');
-                    return `document.querySelector('${escaped}')`;
-                }
-                return match;
-            });
-
-            return sanitized;
-        };
-
-        cleanedCode = sanitizeGeneratedCode(cleanedCode);
+        // Clean and sanitize the generated code for mobile compatibility
+        const cleanedCode = sanitizeAndFixHtml(code);
 
         // Create version for the project
         const version = await prisma.version.create({

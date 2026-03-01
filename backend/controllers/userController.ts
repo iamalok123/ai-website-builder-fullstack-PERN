@@ -3,6 +3,7 @@ dotenv.config();
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import openai from "../configs/openai.js";
+import { sanitizeAndFixHtml, AI_MODELS } from "../lib/sanitizeHtml.js";
 import Stripe from "stripe";
 
 
@@ -37,34 +38,27 @@ export const getUserCredits = async (req: Request, res: Response) => {
 const generateWebsiteInBackground = async (projectId: string, userId: string, initialPrompt: string) => {
     try {
         // Enhance User Prompt
-        const enhanceUserPrompt = await openai.chat.completions.create({
-            model: "arcee-ai/trinity-large-preview:free",
-            messages: [
-                {
-                    role: "system",
-                    content: `
-                        You are a prompt enhancement specialist. Take the user's website request and make it clearer and more actionable for a web developer, while keeping it SIMPLE and FAST to build.
-
-                        Enhance this prompt by:
-                        1. Choosing a color scheme (2-3 colors with hex codes) and a Google Font (Inter, Poppins, or Outfit)
-                        2. Listing 3-5 simple sections the website should have (e.g. Hero, Features/About, Contact/CTA, Footer). Do NOT ask for more than 5 sections.
-                        3. Briefly describing what each section contains (a short heading + 1 sentence of content description)
-                        4. Specifying if it should be dark or light themed
-                        5. Mentioning mobile-responsive layout with hamburger menu on mobile
-
-                        KEEP IT SIMPLE: No complex animations, no SVG icons, no animated counters, no carousels, no accordions, no iframes. Just clean, working HTML sections with text and simple styling.
-
-                        Return ONLY the enhanced prompt in 1-2 short paragraphs. Be concise.
-                    `
-                },
-                {
-                    role: "user",
-                    content: initialPrompt
-                }
-            ]
-        })
-
-        const enhancedPrompt = enhanceUserPrompt.choices[0].message.content;
+        let enhancedPrompt = initialPrompt;
+        try {
+            const enhanceUserPrompt = await openai.chat.completions.create({
+                model: AI_MODELS[0],
+                temperature: 0.7,
+                max_tokens: 500,
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a prompt enhancer. Take the user's website request and output a clear, concise, actionable brief for a web developer. Include: 1) A color scheme (2-3 hex colors) 2) Theme: dark or light 3) List 3-5 sections (Nav, Hero, Features, CTA, Footer) with brief descriptions 4) Mobile-first with hamburger menu. Keep it to 1-2 short paragraphs. No markdown. No complex features (no SVGs, animations, carousels). Output ONLY the enhanced brief.`
+                    },
+                    {
+                        role: "user",
+                        content: initialPrompt
+                    }
+                ]
+            });
+            enhancedPrompt = enhanceUserPrompt.choices[0].message.content || initialPrompt;
+        } catch (enhanceErr) {
+            console.warn('Prompt enhancement failed, using original prompt:', enhanceErr);
+        }
 
         // Create assistant's conversation with enhanced prompt
         await prisma.conversation.create({
@@ -83,88 +77,78 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
             }
         })
 
-        // Generate Website Code with Retry Logic
+        // Generate Website Code with Retry Logic + Model Rotation
         let code = '';
         let attempts = 0;
         const maxAttempts = 3;
 
         while (attempts < maxAttempts && !code) {
+            const model = AI_MODELS[attempts % AI_MODELS.length];
             attempts++;
             try {
-                console.log(`Generating website code... Attempt ${attempts}/${maxAttempts}`);
+                console.log(`Generating website code with ${model}... Attempt ${attempts}/${maxAttempts}`);
                 const codeGenerationResponse = await openai.chat.completions.create({
-                    model: "arcee-ai/trinity-large-preview:free",
+                    model,
+                    temperature: 0.7,
                     messages: [
                         {
                             role: "system",
-                            content: `
-                        You are an expert web developer. Create a SIMPLE, FAST-LOADING, single-page website based on this request: "${enhancedPrompt}"
+                            content: `You are a web developer. Generate a complete, working, single-page HTML website. Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
 
-                        GOAL: Generate a clean, working website FAST. Prioritize a visible, functional result over complexity. Keep total HTML under 300 lines.
+INCLUDE IN <head>:
+- <meta charset="UTF-8">
+- <meta name="viewport" content="width=device-width, initial-scale=1.0">
+- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+- <style>body{font-family:'Inter',sans-serif;scroll-behavior:smooth;overflow-x:hidden}</style>
 
-                        CRITICAL REQUIREMENTS:
-                            - Output valid HTML ONLY. No markdown, no explanations, no code fences.
-                            - Use Tailwind CSS via this CDN in <head>: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-                            - Include a Google Font in <head>: <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-                            - Set font-family via a <style> block: body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+STRUCTURE (3-5 sections, keep HTML under 250 lines):
+1. Nav: logo text + horizontal links on desktop, hamburger menu on mobile using getElementById toggle
+2. Hero: h1 heading, subtitle paragraph, CTA button
+3. Features/About: 3 cards in a grid with emoji icons (🚀 ⚡ 🎯 💡 🌟 📱) — NO SVGs
+4. CTA or Contact section
+5. Footer with copyright and links
 
-                        STRUCTURE (3-5 SECTIONS ONLY):
-                            - Hero section with a heading (h1), subtitle text, and a CTA button
-                            - Features or About section with 3 simple cards (use emoji for icons, e.g. 🚀 ⚡ 🎯 — NO SVGs)
-                            - Contact or CTA section with a simple call-to-action
-                            - Footer with copyright and a few links
-                            - Each section needs a heading and 1-2 sentences of realistic text
+MOBILE-FIRST RESPONSIVE:
+- Start with mobile layout, add md: and lg: breakpoints for larger screens
+- Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+- Flex: flex-col md:flex-row
+- Padding: px-4 md:px-8 lg:px-12, Section spacing: py-12 md:py-20
+- Container: max-w-7xl mx-auto overflow-hidden
+- Text: text-base md:text-lg, headings: text-2xl md:text-4xl
 
-                        MOBILE-FIRST RESPONSIVE DESIGN:
-                            - Base styles for mobile, use md: and lg: for larger screens
-                            - Navigation: horizontal links on desktop, hamburger menu on mobile with working JavaScript toggle (use getElementById)
-                            - Grids: grid-cols-1 on mobile, md:grid-cols-2 or lg:grid-cols-3 on larger screens
-                            - Content padding: px-4 md:px-8, sections: py-12 md:py-20
-                            - Flex layouts: flex-col md:flex-row
-                            - Use overflow-hidden on containers to prevent horizontal scroll
+DESIGN:
+- Clean, modern, professional look
+- High contrast: dark bg = white/light text, light bg = dark text
+- Buttons: solid bg with white text, rounded, hover states
+- Consistent spacing and rounded corners
 
-                        COLOR & CONTRAST:
-                            - Use a harmonious color palette. Dark bg = light text. Light bg = dark text. Always high contrast.
-                            - Buttons: use contrasting colors (e.g. bg-blue-600 text-white)
-                            - Cards must contrast with their parent background
-
-                        IMAGES:
-                            - Do NOT use complex background images. Use solid Tailwind background colors or simple gradients instead.
-                            - If content images are needed, use https://picsum.photos/{width}/{height}?random=N with alt text and loading="lazy"
-                            - NEVER use fabricated URLs, Google image URLs, SVGs, or iframes
-
-                        JAVASCRIPT (MINIMAL — only these two features):
-                            - Hamburger menu toggle using getElementById
-                            - Smooth scroll is handled by CSS scroll-behavior: smooth
-                            - Do NOT add: animated counters, accordions, carousels, intersection observers, form validation, or back-to-top buttons
-                            - Place <script> before closing </body>
-
-                        STYLING:
-                            - Hover effects on buttons and cards: hover:shadow-lg, transition-all duration-300
-                            - Consistent spacing: gap-6, p-6, max-w-6xl mx-auto
-                            - Keep it clean, modern, and visually appealing with minimal complexity
-
-                        HARD RULES:
-                            1. Output ONLY valid HTML in message.content. Nothing else.
-                            2. Do NOT use SVGs, iframes, or complex embedded content.
-                            3. Do NOT include markdown, explanations, or code fences.
-                            4. Keep it SIMPLE and FAST. 3-5 sections max. Under 300 lines.
-                    `
+STRICT RULES:
+- NO SVGs, NO iframes, NO complex animations, NO carousels, NO animated counters
+- Emoji only for icons
+- Images: https://picsum.photos/{w}/{h}?random=N only (never fabricated URLs)
+- JS: ONLY hamburger menu toggle using getElementById. No other JavaScript
+- Place <script> before </body>
+- Output ONLY the complete HTML document. Nothing else.`
                         },
                         {
                             role: "user",
-                            content: enhancedPrompt || ''
+                            content: enhancedPrompt || initialPrompt
                         }
                     ]
                 });
 
-                code = codeGenerationResponse.choices[0].message.content || '';
-                if (code) break;
+                const result = codeGenerationResponse.choices[0].message.content || '';
+                // Validate the response looks like HTML before accepting
+                if (result && (result.includes('<html') || result.includes('<!DOCTYPE') || result.includes('<head'))) {
+                    code = result;
+                    break;
+                }
+                console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
             } catch (err) {
-                console.error(`Attempt ${attempts} failed:`, err);
+                console.error(`Attempt ${attempts} with ${model} failed:`, err);
                 if (attempts === maxAttempts) throw err;
-                // Wait 1 second before retrying
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 1500));
             }
         }
 
@@ -192,40 +176,8 @@ const generateWebsiteInBackground = async (projectId: string, userId: string, in
             return;
         }
 
-        // Clean code: remove markdown fences and any text before <!DOCTYPE or <html
-        let cleanedCode = code.replace(/```[a-z]*\n?/gi, "").replace(/```$/g, "").trim();
-        const htmlStartMatch = cleanedCode.match(/<!DOCTYPE\s+html|<html/i);
-        if (htmlStartMatch && htmlStartMatch.index !== undefined) {
-            cleanedCode = cleanedCode.substring(htmlStartMatch.index).trim();
-        }
-
-        // Sanitize generated code
-        const sanitizeGeneratedCode = (html: string): string => {
-            let sanitized = html;
-
-            // Fix 1: Ensure TinyMCE is included if used
-            if (sanitized.includes('tinymce') && !sanitized.includes('src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"')) {
-                const scriptTag = '<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>';
-                if (sanitized.includes('</body>')) {
-                    sanitized = sanitized.replace('</body>', `${scriptTag}</body>`);
-                } else {
-                    sanitized += scriptTag;
-                }
-            }
-
-            // Fix 2: Auto-fix querySelector syntax for tailwind classes with slashes (e.g. w-1/2)
-            sanitized = sanitized.replace(/document\.querySelector\(['"](\.([^'"]+))['"]\)/g, (match, selector) => {
-                if (selector.includes('/')) {
-                    const escaped = selector.replace(/\//g, '\\\\/');
-                    return `document.querySelector('${escaped}')`;
-                }
-                return match;
-            });
-
-            return sanitized;
-        };
-
-        cleanedCode = sanitizeGeneratedCode(cleanedCode);
+        // Clean and sanitize the generated code for mobile compatibility
+        const cleanedCode = sanitizeAndFixHtml(code);
 
         // Create version for the project
         const version = await prisma.version.create({
