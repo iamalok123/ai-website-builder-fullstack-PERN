@@ -54,7 +54,7 @@ coverage/
 .cache/
 tmp/
 temp/
-
+.hintrc
 # Package manager lock files (keep only one)
 # Uncomment the ones you don't use:
 # package-lock.json

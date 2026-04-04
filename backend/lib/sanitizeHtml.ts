@@ -143,6 +143,7 @@ ${scriptContent.trim()}
  * empty content, the next model in the list is tried.
  */
 export const AI_MODELS = [
+    "qwen/qwen3.6-plus:free",
     "arcee-ai/trinity-large-preview:free",
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.3-70b-instruct:free",
