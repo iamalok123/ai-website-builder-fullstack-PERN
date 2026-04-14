@@ -116,6 +116,26 @@
 
 ---
 
+## 🏗 System Architecture & Data Flow
+
+### 1. Authentication Flow
+- **Better Auth Integration**: User registers/logs in via Better Auth endpoints (`/api/auth/*`).
+- **Session Management**: Session and user data are securely stored in the PostgreSQL database using Prisma models (`Session`, `Account`, `User`). 
+- **Security Check**: An HTTP-only session cookie is sent to the client, effectively managing logged-in state across frontend and backend. 
+
+### 2. AI Website Generation Flow
+- **User Prompt**: The user submits a natural language description for a desired website interface from the frontend React app.
+- **Backend Processing**: Handled by `ProjectController.ts`, the backend connects to the OpenRouter/OpenAI API and frames the user's prompt with precise system messages to strictly yield deployable HTML/CSS/JS.
+- **Data Persistence**: The generated code, along with conversation sequences and version trees, is captured in the database (`WebsiteProject`, `Version`, `Conversation` tables) enabling robust rollback functionalities.
+- **Live Render**: Code string is channeled back to the frontend, decoded, and rendered inside a secure `iframe` on `ProjectPreview` or `EditorPanel`.
+
+### 3. Payment & Credit Pipeline
+- **Credit Purchases**: Handled via `stripeWebhook.ts`. When a user opts for a paid plan, a session is created through Stripe API.
+- **Webhook Events**: Upon successful checkout (`payment_intent.succeeded`), Stripe fires an event to the backend's `/api/stripe` webhook.
+- **Crediting Account**: The backend extracts payload details, maps to the specific `userId`, and increments database credits allowing for continued AI website generations.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -237,66 +257,58 @@ Visit [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 📚 Project Structure
+## 📚 Project Structure & Core Logic Explanation
 
-```
+```text
 zephyr-ai-website-builder/
 ├── backend/
-│   ├── configs/              # Configuration files
-│   │   └── openai.ts        # OpenAI client setup
-│   ├── controllers/         # Request handlers
-│   │   ├── ProjectController.ts
-│   │   ├── userController.ts
-│   │   └── stripeWebhook.ts
-│   ├── generated/           # Prisma generated client
-│   ├── lib/                 # Utility libraries
-│   │   ├── auth.ts         # Better Auth configuration
-│   │   └── prisma.ts       # Prisma client instance
-│   ├── middlewares/         # Express middlewares
-│   │   └── auth.ts         # Authentication middleware
-│   ├── prisma/              # Database schema & migrations
-│   │   ├── schema.prisma   # Database models
-│   │   └── migrations/     # Migration history
-│   ├── routes/              # API routes
-│   │   ├── userRoutes.ts
-│   │   └── projectRoutes.ts
-│   ├── types/               # TypeScript type definitions
-│   │   └── express.d.ts
-│   ├── server.ts            # Express app entry point
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vercel.json          # Vercel deployment config
+│   ├── configs/              
+│   │   └── openai.ts        # Connects Backend with OpenRouter APIs to relay generation prompts.
+│   ├── controllers/         
+│   │   ├── ProjectController.ts # Core logic. Handles saving, versioning, regenerating code, and deletions via Prisma.
+│   │   ├── stripeWebhook.ts     # Stripe webhook validation handler; allocates credits upon 'payment_intent.succeeded'.
+│   │   └── userController.ts    # Manages fetching user profile data and initial stripe portal invocations.
+│   ├── generated/           # Auto-generated Prisma TS clients.
+│   ├── lib/                 
+│   │   ├── auth.ts          # Integrates 'Better Auth' for comprehensive server-side JWT/session validation.
+│   │   └── prisma.ts        # Reusable, singleton Prisma ORM Client adapter for Neon DB.
+│   ├── middlewares/         
+│   │   └── auth.ts          # Validates 'Better Auth' session objects natively in Express middleware to protect API routes.
+│   ├── prisma/              
+│   │   ├── schema.prisma    # Essential Postgres blueprint containing models: User, WebsiteProject, Version, Conversation, Transaction, Session, Account.
+│   │   └── migrations/     
+│   ├── routes/              
+│   │   ├── projectRoutes.ts # '/api/project' mappings routing to ProjectController operations.
+│   │   └── userRoutes.ts    # '/api/user' mappings routing to user properties & purchasing credits.
+│   ├── types/               
+│   │   └── express.d.ts     # Defines custom session/user object mappings for the global Express Request Type.
+│   ├── server.ts            # Entrypoint file hooking Express, Better-Auth, CORS, Webhooks and Custom Router endpoints.
+│   └── (config files...)    
 │
 ├── frontend/
-│   ├── public/              # Static assets
+│   ├── public/              # Static public facing logo/assets.
 │   ├── src/
-│   │   ├── assets/         # Images, fonts, etc.
-│   │   ├── components/     # React components
-│   │   │   ├── Navbar.tsx
-│   │   │   ├── Sidebar.tsx
-│   │   │   ├── EditorPanel.tsx
-│   │   │   ├── ProjectPreview.tsx
-│   │   │   └── ...
-│   │   ├── configs/        # Configuration
-│   │   │   └── axios.ts   # HTTP client setup
-│   │   ├── lib/           # Utilities
-│   │   │   ├── auth-client.ts
-│   │   │   └── utils.ts
-│   │   ├── pages/         # Route pages
-│   │   │   ├── Home.tsx
-│   │   │   ├── Projects.tsx
-│   │   │   ├── MyProjects.tsx
-│   │   │   ├── Pricing.tsx
-│   │   │   └── ...
-│   │   ├── types/         # TypeScript types
-│   │   │   └── index.ts
-│   │   ├── App.tsx        # Main app component
-│   │   ├── main.tsx       # Entry point
-│   │   └── index.css      # Global styles
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   └── vercel.json
+│   │   ├── components/     
+│   │   │   ├── EditorPanel.tsx     # Provides real-time code modifications via monaco-style or textarea injection functionalities for advanced tweaking.
+│   │   │   ├── ProjectPreview.tsx  # Creates an isolated iframe securely rendering textual raw HTML/CSS/JS variables generated from the ProjectController.
+│   │   │   ├── Navbar.tsx          # Dynamic global navigation varying with logged-in user state.
+│   │   │   ├── Sidebar.tsx         # AI prompt and history conversation view, showing user commands vs AI website revisions.
+│   │   │   └── LoaderSteps.tsx     # Animated transition handling API fetching states.
+│   │   ├── configs/        
+│   │   │   └── axios.ts            # HTTP wrapper appending credentials across origin to the Backend API.
+│   │   ├── lib/           
+│   │   │   ├── auth-client.ts      # Client implementation of 'better-auth/react' exposing React auth context.
+│   │   │   └── utils.ts            # Styling helper (twMerge & clsx).
+│   │   ├── pages/         
+│   │   │   ├── Home.tsx            # Zephyr landing page.
+│   │   │   ├── Projects.tsx        # Dynamic dashboard handling specific website building workflow (/projects/:projectId).
+│   │   │   ├── MyProjects.tsx      # Fetches all saved projects of User from DB yielding card summaries.
+│   │   │   ├── Preview.tsx         # Dedicated fullscreen, responsive device-size simulation route for an independent Website.
+│   │   │   └── AuthPage.tsx        # Intercepts login/register flows encapsulating generic BetterAuth Ui components.
+│   │   ├── App.tsx          # Root React Router mapper segregating authenticated and unauthenticated segments appropriately.
+│   │   ├── main.tsx         # ReactDOM root mount point establishing Context APIs (BrowserRouter).
+│   │   └── index.css        # Core Tailwind compilation target containing app theming basics.
+│   └── (config files...)    
 │
 ├── .gitignore
 └── README.md
