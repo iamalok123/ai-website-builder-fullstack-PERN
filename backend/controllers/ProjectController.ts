@@ -284,7 +284,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
-                content: `I've rolled back your website to version . You can now preview it and request any changes.`,
+                content: `I've rolled back your website to the selected version from ${version.timestamp.toLocaleString()}. You can now preview it and request any changes.`,
                 projectId
             }
         })
@@ -436,14 +436,26 @@ export const saveProjectCode = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Project not found.' });
         }
 
-        await prisma.websiteProject.update({
-            where: {
-                id: projectId
-            },
-            data: {
-                current_code: code,
-                current_version_index: ''
-            }
+        const cleanedCode = sanitizeAndFixHtml(code);
+
+        await prisma.$transaction(async (tx) => {
+            const version = await tx.version.create({
+                data: {
+                    code: cleanedCode,
+                    description: "Manual save",
+                    projectId
+                }
+            })
+
+            await tx.websiteProject.update({
+                where: {
+                    id: projectId
+                },
+                data: {
+                    current_code: cleanedCode,
+                    current_version_index: version.id
+                }
+            })
         })
 
         console.log('✅ saveProjectCode completed - projectId:', projectId);

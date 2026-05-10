@@ -18,11 +18,11 @@ export default function PricingSection() {
             price: "$19",
             buttonText: "Get Started",
             features: [
-                "Upto 80 Creations",
-                "Extended Revisions",
-                "Advanced AI Models",
-                "Priority email support",
-                "Advanced analytics",
+                "Up to 80 creations",
+                "Extended revisions",
+                "AI website generation",
+                "Publish and download",
+                "Version history",
             ],
         },
         {
@@ -31,11 +31,11 @@ export default function PricingSection() {
             price: "$49",
             buttonText: "Get Started",
             features: [
-                "Upto 200 Creations",
-                "Increased Revisions",
-                "Advanced AI Models",
-                "Email + chat support",
-                "Advanced analytics",
+                "Up to 200 creations",
+                "Increased revisions",
+                "AI website generation",
+                "Publish and download",
+                "Version history",
             ],
         },
     ];
@@ -43,19 +43,19 @@ export default function PricingSection() {
         <section id="pricing" className="flex flex-col md:flex-row gap-14 items-start justify-between max-w-7xl mx-auto mt-32 px-4">
             <div className="max-w-sm">
                 <h3 className="font-domine text-3xl text-white">OUR PRICING</h3>
-                <p className="mt-4 text-sm/6 text-white">Choose a plan that fits your goals and scale. Every plan includes powerful AI features, fast performance, and all the tools you need without limits.</p>
+                <p className="mt-4 text-sm/6 text-white">Choose a credit pack that fits your goals and scale. Every pack supports AI generation, revisions, publishing, and downloads.</p>
                 <div className="mt-8 space-y-4">
                     <div className="flex items-center gap-3 text-white">
                         <div className="p-2.5 border border-amber-400/50 rounded-md bg-amber-400/10">
                             <SparklesIcon className="size-5 text-amber-400" />
                         </div>
-                        <p>Advanced AI features included</p>
+                        <p>AI generation and revisions included</p>
                     </div>
                     <div className="flex items-center gap-3 text-white">
                         <div className="p-2.5 border border-amber-400/50 rounded-md bg-amber-400/10">
                             <ZapIcon className="size-5 text-amber-400" />
                         </div>
-                        <p>Lightning fast load speed always</p>
+                        <p>Responsive HTML output with Tailwind</p>
                     </div>
                     <div className="flex items-center gap-3 text-white">
                         <div className="p-2.5 border border-amber-400/50 rounded-md bg-amber-400/10">
@@ -72,7 +72,7 @@ export default function PricingSection() {
                             <h3 className='text-lg font-semibold'>{item.title}</h3>
                             <p className={item.mostPopular ? 'text-gray-400' : 'text-gray-600'}>{item.description}</p>
                             <p className='mt-4 text-2xl font-semibold'>
-                                {item.price} <span className={`text-sm font-normal ${item.mostPopular ? 'text-gray-400' : 'text-gray-600'}`}>/month</span>
+                                {item.price} <span className={`text-sm font-normal ${item.mostPopular ? 'text-gray-400' : 'text-gray-600'}`}>credit pack</span>
                             </p>
                             <button className={`mt-4 w-full rounded-lg py-2.5 font-medium transition ${item.mostPopular ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'}`}>{item.buttonText}</button>
                         </div>

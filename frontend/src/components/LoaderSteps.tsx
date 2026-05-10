@@ -5,7 +5,7 @@ const steps = [
     { icon: ScanLineIcon, label: "Analyzing your request..." },
     { icon: SquareIcon, label: "Generating layout structure..." },
     { icon: TriangleIcon, label: "Assembling UI components..." },
-    { icon: CircleIcon, label: "Finalising Your website..." },
+    { icon: CircleIcon, label: "Finalizing your website..." },
 ]
 
 const STEP_DURATION = 45000

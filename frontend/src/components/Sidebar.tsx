@@ -18,6 +18,14 @@ const Sidebar = ({ isMenuOpen, project, setProject, isGenerating, setIsGeneratin
     const messageRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState('');
 
+    const getErrorMessage = (error: unknown) => {
+        if (typeof error === 'object' && error !== null) {
+            const maybeAxiosError = error as { response?: { data?: { message?: string } }, message?: string };
+            return maybeAxiosError.response?.data?.message || maybeAxiosError.message || 'Something went wrong';
+        }
+        return 'Something went wrong';
+    }
+
     const handleRollback = async (versionId: string) => {
         try {
             const confirm = window.confirm('Are you sure you want to rollback to this version?');
@@ -28,9 +36,9 @@ const Sidebar = ({ isMenuOpen, project, setProject, isGenerating, setIsGeneratin
             setProject(data2.project);
             toast.success(data.message);
             setIsGenerating(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
             setIsGenerating(false);
-            toast.error(error.response.data.message);
+            toast.error(getErrorMessage(error));
             console.log(error)
         }
     }
@@ -39,8 +47,8 @@ const Sidebar = ({ isMenuOpen, project, setProject, isGenerating, setIsGeneratin
         try {
             const { data } = await api.get(`/api/user/project/${project?.id}`);
             setProject(data.project);
-        } catch (error: any) {
-            toast.error(error.response.data.message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error));
             console.log(error)
         }
     }
@@ -61,8 +69,8 @@ const Sidebar = ({ isMenuOpen, project, setProject, isGenerating, setIsGeneratin
             setInput('');
             setIsGenerating(false);
             clearInterval(interval);
-        } catch (error: any) {
-            toast.error(error.response.data.message);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error));
             setIsGenerating(false);
             console.log(error)
             clearInterval(interval);
