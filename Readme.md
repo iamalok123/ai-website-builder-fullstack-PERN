@@ -1,744 +1,448 @@
-# ⚡ Zephyr - AI-Powered Website Builder
+# Zephyr AI Website Builder
 
-<div align="center">
+Zephyr is a full-stack AI website builder. Users can sign in, spend credits to generate websites from prompts, request AI revisions, visually edit generated HTML, save immutable versions, roll back changes, publish projects, download HTML, and purchase credits through Stripe.
 
-![Zephyr](https://img.shields.io/badge/Zephyr-AI%20Website%20Builder-6366F1?style=for-the-badge&logo=react&logoColor=white)
-![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/license-ISC-green?style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+The application is split into two apps:
 
-**⚡ Transform ideas into stunning websites in seconds with AI**
+- `frontend`: React 19, Vite, TypeScript, Tailwind CSS.
+- `backend`: Express 5, TypeScript, Prisma 7, Neon PostgreSQL, Better Auth, Stripe, OpenRouter, Inngest.
 
-[Features](#-features) • [Tech Stack](#-tech-stack) • [Getting Started](#-getting-started) • [Deployment](#-deployment) • [API Documentation](#-api-documentation)
+## Current Architecture
 
-</div>
-
----
-
-## 📖 About
-
-**Zephyr** is a cutting-edge AI-powered website builder that transforms simple text descriptions into beautiful, fully functional websites in seconds. Built with modern technologies and best practices, Zephyr combines the power of artificial intelligence with an intuitive visual editor to make professional web development accessible to everyone - no coding knowledge required.
-
-### ✨ Key Highlights
-
-- 🤖 **AI-Powered Generation**: Uses OpenAI to convert natural language into production-ready HTML/CSS/JS
-- ⚡ **Real-time Preview**: Instant visual feedback with live code preview
-- 🎨 **Visual Editor**: Drag-and-drop interface with element-level customization
-- 📜 **Version Control**: Track changes with full version history and rollback capability
-- 💳 **Integrated Payments**: Seamless Stripe integration for credit purchases
-- 🔐 **Secure Authentication**: Powered by Better Auth with email/password support
-- 🌐 **One-Click Publishing**: Share your creations with public URLs
-- 📱 **Fully Responsive**: Works seamlessly across all devices
-
----
-
-## 🎯 Features
-
-### Core Functionality
-
-#### 🎨 AI Website Generation
-- **Natural Language Processing**: Describe your website in plain English
-- **Intelligent Prompt Enhancement**: AI optimizes your prompts for better results
-- **Tailwind CSS Integration**: Modern, responsive designs using utility-first CSS
-- **Interactive Elements**: Automatically includes JavaScript functionality
-
-#### ✏️ Advanced Editing
-- **Visual Element Editor**: Modify text, colors, spacing, and styles
-- **Direct Code Editing**: For advanced users who prefer code
-- **Real-time Updates**: See changes instantly in the preview pane
-- **Undo/Redo Support**: Non-destructive editing workflow
-
-#### 📊 Project Management
-- **Unlimited Projects**: Create and manage multiple websites
-- **Project Dashboard**: Overview of all your creations
-- **Search & Filter**: Quickly find specific projects
-- **Bulk Operations**: Delete or export multiple projects
-
-#### 🔄 Version Control
-- **Automatic Versioning**: Every AI revision creates a new version
-- **Version History**: Browse all previous iterations
-- **One-Click Rollback**: Restore any previous version
-- **Version Comparison**: (Coming soon)
-
-#### 💰 Credit System
-- **Free Credits**: 20 credits on signup
-- **Project Creation**: 5 credits per new website
-- **Revisions**: 5 credits per AI modification
-- **Flexible Pricing**: Multiple credit packages available
-- **Secure Payments**: PCI-compliant Stripe integration
-
-#### 🌐 Publishing & Sharing
-- **Public URLs**: Share your websites with anyone
-- **Custom Domains**: (Coming soon)
-- **Download HTML**: Export complete website code
-- **Embed Options**: (Coming soon)
-
----
-
-## 🛠 Tech Stack
-
-### Frontend
-
-| Technology | Purpose | Version |
-|------------|---------|---------|
-| **React** | UI Framework | 19.2.0 |
-| **TypeScript** | Type Safety | 5.9.3 |
-| **Vite** | Build Tool | 7.2.4 |
-| **React Router** | Navigation | 7.12.0 |
-| **Axios** | HTTP Client | 1.13.2 |
-| **Tailwind CSS** | Styling | 4.1.18 |
-| **Better Auth UI** | Authentication Components | 3.3.15 |
-| **Sonner** | Toast Notifications | 2.0.7 |
-| **Lucide React** | Icons | 0.562.0 |
-
-### Backend
-
-| Technology | Purpose | Version |
-|------------|---------|---------|
-| **Node.js** | Runtime | ES2020 |
-| **Express** | Web Framework | 5.2.1 |
-| **TypeScript** | Type Safety | 5.9.3 |
-| **Prisma** | ORM | 7.2.0 |
-| **PostgreSQL** | Database | (via Neon) |
-| **Better Auth** | Authentication | 1.4.16 |
-| **OpenAI SDK** | AI Integration | 6.16.0 |
-| **Stripe** | Payment Processing | 20.2.0 |
-
-### Infrastructure
-
-- **Database**: Neon PostgreSQL (Serverless)
-- **Hosting**: Vercel (Frontend & Backend)
-- **Authentication**: Better Auth (Session-based)
-- **Payments**: Stripe (Webhook integration)
-- **AI**: OpenRouter (Mistral Devstral)
-
----
-
-## 🏗 System Architecture & Data Flow
-
-### 1. Authentication Flow
-- **Better Auth Integration**: User registers/logs in via Better Auth endpoints (`/api/auth/*`).
-- **Session Management**: Session and user data are securely stored in the PostgreSQL database using Prisma models (`Session`, `Account`, `User`). 
-- **Security Check**: An HTTP-only session cookie is sent to the client, effectively managing logged-in state across frontend and backend. 
-
-### 2. AI Website Generation Flow
-- **User Prompt**: The user submits a natural language description for a desired website interface from the frontend React app.
-- **Backend Processing**: Handled by `ProjectController.ts`, the backend connects to the OpenRouter/OpenAI API and frames the user's prompt with precise system messages to strictly yield deployable HTML/CSS/JS.
-- **Data Persistence**: The generated code, along with conversation sequences and version trees, is captured in the database (`WebsiteProject`, `Version`, `Conversation` tables) enabling robust rollback functionalities.
-- **Live Render**: Code string is channeled back to the frontend, decoded, and rendered inside a secure `iframe` on `ProjectPreview` or `EditorPanel`.
-
-### 3. Payment & Credit Pipeline
-- **Credit Purchases**: Handled via `stripeWebhook.ts`. When a user opts for a paid plan, a session is created through Stripe API.
-- **Webhook Events**: Upon successful checkout (`payment_intent.succeeded`), Stripe fires an event to the backend's `/api/stripe` webhook.
-- **Crediting Account**: The backend extracts payload details, maps to the specific `userId`, and increments database credits allowing for continued AI website generations.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- **Node.js**: v18.0.0 or higher
-- **npm**: v9.0.0 or higher (or **yarn**/**pnpm**)
-- **Git**: Latest version
-- **PostgreSQL**: Or a Neon account (recommended)
-
-### Required API Keys
-
-You'll need accounts and API keys for:
-
-1. **Neon** (Database): [console.neon.tech](https://console.neon.tech)
-2. **OpenRouter** (AI): [openrouter.ai](https://openrouter.ai)
-3. **Stripe** (Payments): [dashboard.stripe.com](https://dashboard.stripe.com)
-
-### Installation
-
-#### 1. Clone the Repository
-
-```bash
-git clone https://github.com/iamalok123/ai-website-builder-fullstack-PERN.git
-cd ai-website-builder-fullstack-PERN
+```text
+Browser
+  |
+  | Vite SPA, Axios with credentials
+  v
+Frontend
+  |
+  | VITE_BASEURL
+  v
+Backend Express API
+  |-- Better Auth sessions
+  |-- Prisma + Neon PostgreSQL
+  |-- Stripe Checkout and webhook
+  |-- Inngest durable generation endpoint
+  v
+Neon / OpenRouter / Stripe / Inngest
 ```
 
-#### 2. Install Backend Dependencies
+## Key Production Behaviors
 
-```bash
-cd backend
-npm install
+- AI generation is handled through durable `GenerationJob` records and Inngest events.
+- Project creation and revision requests create the project/job/conversation/credit debit in a Prisma transaction.
+- Project generation state is stored as `queued`, `running`, `completed`, or `failed`.
+- Failed generation jobs store `generationError` and refund credits through the ledger.
+- Credit changes are recorded in `CreditLedger` for debits, refunds, and purchases.
+- Generated and manually saved HTML creates immutable `Version` snapshots.
+- Public preview responses are selected-field responses and use stricter HTML sanitization.
+- The frontend polls real generation status instead of guessing only from `current_code`.
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS, React Router, Axios |
+| Backend | Node.js, Express 5, TypeScript |
+| Database | Neon PostgreSQL |
+| ORM | Prisma 7 |
+| Auth | Better Auth |
+| AI | OpenRouter through OpenAI SDK |
+| Jobs | Inngest |
+| Payments | Stripe |
+
+## Project Structure
+
+```text
+.
+├── backend/
+│   ├── controllers/          # HTTP controllers
+│   ├── services/             # Business logic for generation, projects, credits, payments
+│   ├── inngest/              # Durable job functions
+│   ├── lib/                  # Prisma, auth, validation, Inngest client, sanitization
+│   ├── middlewares/          # Auth, validation, rate limiting
+│   ├── prisma/               # Prisma schema and migrations
+│   ├── routes/               # Express routes
+│   ├── tests/                # Node test runner tests
+│   ├── server.ts             # API entrypoint
+│   └── worker.ts             # Optional dedicated Inngest worker entrypoint
+├── frontend/
+│   └── src/
+│       ├── components/       # Builder, preview, editor, layout components
+│       ├── pages/            # App routes
+│       ├── sections/         # Landing/pricing sections
+│       ├── configs/          # Axios config
+│       └── lib/              # Auth client and utilities
+├── ChatGPT.md                # Architecture context for future agent work
+└── Readme.md
 ```
 
-#### 3. Install Frontend Dependencies
+## Environment Variables
 
-```bash
-cd frontend
-npm install
-```
+Do not commit real `.env` files. They are ignored by git.
 
-#### 4. Configure Environment Variables
+### Backend `backend/.env`
 
-##### Backend (.env)
-
-Create `backend/.env`:
+For local development with Neon:
 
 ```env
-# Database
-DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/neondb?sslmode=require&channel_binding=require"
 
-# Authentication
-BETTER_AUTH_SECRET="your-random-secret-key-min-32-chars"
+BETTER_AUTH_SECRET="generate-a-long-random-secret"
 BETTER_AUTH_URL="http://localhost:3000"
-
-# CORS
 TRUSTED_ORIGINS="http://localhost:5173"
-
-# Environment
 NODE_ENV="development"
 
-# AI
 AI_API_KEY="your-openrouter-api-key"
 
-# Payments
-STRIPE_SECRET_KEY="sk_test_your_stripe_secret_key"
-STRIPE_WEBHOOK_SECRET="whsec_your_webhook_secret"
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+INNGEST_DEV=1
+PORT=3000
 ```
 
-**Generate Secrets**:
-```bash
-# Generate BETTER_AUTH_SECRET
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+For production with Inngest Cloud also set:
+
+```env
+INNGEST_EVENT_KEY="..."
+INNGEST_SIGNING_KEY="..."
 ```
 
-##### Frontend (.env)
+Keep `ENABLE_INLINE_GENERATION_FALLBACK` unset or `false` in production.
 
-Create `frontend/.env`:
+### Frontend `frontend/.env`
 
 ```env
 VITE_BASEURL="http://localhost:3000"
+VITE_APP_URL="http://localhost:5173"
 ```
 
-#### 5. Setup Database
+`VITE_BASEURL` is the important runtime value currently used by the frontend.
+
+## Neon And Prisma
+
+This project uses Neon PostgreSQL. You do not need a local Postgres server if `DATABASE_URL` points to Neon.
+
+Use the correct Prisma command for the database you are targeting:
 
 ```bash
-cd backend
+# Shared, staging, or production Neon database
+npx prisma migrate deploy
 
-# Generate Prisma Client
-npx prisma generate
-
-# Run migrations
+# Disposable local/dev Neon branch only
 npx prisma migrate dev
-
-# (Optional) Seed database
-npx prisma db seed
 ```
 
-#### 6. Start Development Servers
+Recommended safe workflow:
 
-**Backend** (Terminal 1):
+1. Create a Neon development branch.
+2. Put that branch connection string in `backend/.env`.
+3. Run migrations against the dev branch first.
+4. Test locally.
+5. Deploy code.
+6. Run `npx prisma migrate deploy` against staging/production during deployment.
+
+## Install
+
 ```bash
 cd backend
-npm run dev
-# Server runs on http://localhost:3000
+npm install
+
+cd ../frontend
+npm install
 ```
 
-**Frontend** (Terminal 2):
+Generate Prisma client after installing backend dependencies:
+
 ```bash
-cd frontend
-npm run dev
-# App runs on http://localhost:5173
+cd backend
+npx prisma generate
 ```
 
-#### 7. Open Application
+Apply migrations to your Neon dev branch:
 
-Visit [http://localhost:5173](http://localhost:5173) in your browser.
+```bash
+cd backend
+npx prisma migrate deploy
+```
 
----
+## Run Locally
 
-## 📚 Project Structure & Core Logic Explanation
+Stop old terminals first with `Ctrl + C`.
+
+### Terminal 1: Backend
+
+```cmd
+cd /d C:\Users\LENOVO\Desktop\Full_Stack_Projects\AI_Website_Builder_PERN_Full_Stack_Project\backend
+npm run dev
+```
+
+Backend runs at:
 
 ```text
-zephyr-ai-website-builder/
-├── backend/
-│   ├── configs/              
-│   │   └── openai.ts        # Connects Backend with OpenRouter APIs to relay generation prompts.
-│   ├── controllers/         
-│   │   ├── ProjectController.ts # Core logic. Handles saving, versioning, regenerating code, and deletions via Prisma.
-│   │   ├── stripeWebhook.ts     # Stripe webhook validation handler; allocates credits upon 'payment_intent.succeeded'.
-│   │   └── userController.ts    # Manages fetching user profile data and initial stripe portal invocations.
-│   ├── generated/           # Auto-generated Prisma TS clients.
-│   ├── lib/                 
-│   │   ├── auth.ts          # Integrates 'Better Auth' for comprehensive server-side JWT/session validation.
-│   │   └── prisma.ts        # Reusable, singleton Prisma ORM Client adapter for Neon DB.
-│   ├── middlewares/         
-│   │   └── auth.ts          # Validates 'Better Auth' session objects natively in Express middleware to protect API routes.
-│   ├── prisma/              
-│   │   ├── schema.prisma    # Essential Postgres blueprint containing models: User, WebsiteProject, Version, Conversation, Transaction, Session, Account.
-│   │   └── migrations/     
-│   ├── routes/              
-│   │   ├── projectRoutes.ts # '/api/project' mappings routing to ProjectController operations.
-│   │   └── userRoutes.ts    # '/api/user' mappings routing to user properties & purchasing credits.
-│   ├── types/               
-│   │   └── express.d.ts     # Defines custom session/user object mappings for the global Express Request Type.
-│   ├── server.ts            # Entrypoint file hooking Express, Better-Auth, CORS, Webhooks and Custom Router endpoints.
-│   └── (config files...)    
-│
-├── frontend/
-│   ├── public/              # Static public facing logo/assets.
-│   ├── src/
-│   │   ├── components/     
-│   │   │   ├── EditorPanel.tsx     # Provides real-time code modifications via monaco-style or textarea injection functionalities for advanced tweaking.
-│   │   │   ├── ProjectPreview.tsx  # Creates an isolated iframe securely rendering textual raw HTML/CSS/JS variables generated from the ProjectController.
-│   │   │   ├── Navbar.tsx          # Dynamic global navigation varying with logged-in user state.
-│   │   │   ├── Sidebar.tsx         # AI prompt and history conversation view, showing user commands vs AI website revisions.
-│   │   │   └── LoaderSteps.tsx     # Animated transition handling API fetching states.
-│   │   ├── configs/        
-│   │   │   └── axios.ts            # HTTP wrapper appending credentials across origin to the Backend API.
-│   │   ├── lib/           
-│   │   │   ├── auth-client.ts      # Client implementation of 'better-auth/react' exposing React auth context.
-│   │   │   └── utils.ts            # Styling helper (twMerge & clsx).
-│   │   ├── pages/         
-│   │   │   ├── Home.tsx            # Zephyr landing page.
-│   │   │   ├── Projects.tsx        # Dynamic dashboard handling specific website building workflow (/projects/:projectId).
-│   │   │   ├── MyProjects.tsx      # Fetches all saved projects of User from DB yielding card summaries.
-│   │   │   ├── Preview.tsx         # Dedicated fullscreen, responsive device-size simulation route for an independent Website.
-│   │   │   └── AuthPage.tsx        # Intercepts login/register flows encapsulating generic BetterAuth Ui components.
-│   │   ├── App.tsx          # Root React Router mapper segregating authenticated and unauthenticated segments appropriately.
-│   │   ├── main.tsx         # ReactDOM root mount point establishing Context APIs (BrowserRouter).
-│   │   └── index.css        # Core Tailwind compilation target containing app theming basics.
-│   └── (config files...)    
-│
-├── .gitignore
-└── README.md
+http://localhost:3000
 ```
 
----
+### Terminal 2: Inngest Dev Server
 
-## 🔌 API Documentation
-
-### Authentication Endpoints
-
-#### Better Auth
-All authentication is handled through Better Auth:
-
-```
-POST   /api/auth/sign-up          # Create account
-POST   /api/auth/sign-in          # Login
-POST   /api/auth/sign-out         # Logout
-GET    /api/auth/session          # Get current session
+```cmd
+cd /d C:\Users\LENOVO\Desktop\Full_Stack_Projects\AI_Website_Builder_PERN_Full_Stack_Project\backend
+npm run inngest:dev
 ```
 
-### User Endpoints
+Inngest dashboard:
 
-All user endpoints require authentication.
+```text
+http://localhost:8288
+```
 
-#### Get User Credits
+### Terminal 3: Frontend
+
+```cmd
+cd /d C:\Users\LENOVO\Desktop\Full_Stack_Projects\AI_Website_Builder_PERN_Full_Stack_Project\frontend
+npm run dev
+```
+
+Frontend runs at:
+
+```text
+http://localhost:5173
+```
+
+## Local Flow To Test
+
+1. Open `http://localhost:5173`.
+2. Sign up or sign in.
+3. Create a new website from a prompt.
+4. Backend creates a project, generation job, conversation row, and credit debit.
+5. Inngest receives `website/generation.requested`.
+6. The job moves from `queued` to `running` to `completed`.
+7. Frontend polls the project and shows the generated website when `current_code` is ready.
+8. Request a revision from the sidebar.
+9. Save manual edits.
+10. Roll back to a previous version.
+11. Publish/unpublish and view public/community pages.
+
+It is normal to see repeated `getUserProject completed` logs while the frontend polls generation status.
+
+## Stripe Local Testing
+
+Stripe checkout can be started locally if Stripe keys are configured.
+
+For webhook testing:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe
+```
+
+Copy the generated `whsec_...` into `backend/.env` as `STRIPE_WEBHOOK_SECRET`, then restart the backend.
+
+## API Overview
+
+### Auth
+
+Better Auth is mounted under:
+
+```text
+/api/auth/*
+```
+
+### User
+
 ```http
-GET /api/user/credits
+GET    /api/user/credits
+POST   /api/user/project
+GET    /api/user/project/:projectId
+GET    /api/user/projects
+GET    /api/user/publish-toggle/:projectId
+POST   /api/user/purchase-credits
 ```
 
-**Response**:
-```json
-{
-  "credits": 15
-}
-```
+### Project
 
-#### Create New Project
 ```http
-POST /api/user/project
-Content-Type: application/json
-
-{
-  "initial_prompt": "Create a modern landing page for a SaaS product"
-}
-```
-
-**Response**:
-```json
-{
-  "projectId": "uuid-here"
-}
-```
-
-#### Get Single Project
-```http
-GET /api/user/project/:projectId
-```
-
-**Response**:
-```json
-{
-  "project": {
-    "id": "uuid",
-    "name": "Project Name",
-    "current_code": "<html>...</html>",
-    "conversation": [...],
-    "versions": [...],
-    "isPublished": false
-  }
-}
-```
-
-#### Get All Projects
-```http
-GET /api/user/projects
-```
-
-#### Toggle Publish Status
-```http
-GET /api/user/publish-toggle/:projectId
-```
-
-#### Purchase Credits
-```http
-POST /api/user/purchase-credits
-Content-Type: application/json
-
-{
-  "planId": "basic" | "pro" | "enterprice"
-}
-```
-
-**Response**:
-```json
-{
-  "url": "https://checkout.stripe.com/..."
-}
-```
-
-### Project Endpoints
-
-All project endpoints require authentication.
-
-#### Make Revision
-```http
-POST /api/project/revision/:projectId
-Content-Type: application/json
-
-{
-  "message": "Make the header blue and add a contact form"
-}
-```
-
-#### Save Project Code
-```http
-PUT /api/project/save/:projectId
-Content-Type: application/json
-
-{
-  "code": "<html>...</html>"
-}
-```
-
-#### Rollback to Version
-```http
-GET /api/project/rollback/:projectId/:versionId
-```
-
-#### Delete Project
-```http
+POST   /api/project/revision/:projectId
+PUT    /api/project/save/:projectId
+GET    /api/project/rollback/:projectId/:versionId
 DELETE /api/project/:projectId
+GET    /api/project/preview/:projectId
+GET    /api/project/published
+GET    /api/project/published/:projectId
 ```
 
-#### Get Project Preview
+### Jobs
+
 ```http
-GET /api/project/preview/:projectId
+POST /api/inngest
+GET  /api/inngest
+PUT  /api/inngest
 ```
 
-#### Get Published Projects (Public)
-```http
-GET /api/project/published
-```
+Handled by Inngest's Express adapter.
 
-#### Get Published Project by ID (Public)
-```http
-GET /api/project/published/:projectId
-```
+### Webhooks
 
-### Webhook Endpoint
-
-#### Stripe Webhook
 ```http
 POST /api/stripe
-Content-Type: application/json
-Stripe-Signature: <signature>
 ```
 
----
+Stripe webhook uses raw request body and must remain registered before `express.json()`.
 
-## 🗄 Database Schema
+## Verification
 
-### Models
-
-```prisma
-model User {
-  id            String
-  email         String
-  name          String
-  totalCreation Int    @default(0)
-  credits       Int    @default(20)
-  emailVerified Boolean @default(false)
-  
-  projects      WebsiteProject[]
-  sessions      Session[]
-  accounts      Account[]
-  transactions  Transaction[]
-}
-
-model WebsiteProject {
-  id                    String
-  name                  String
-  initial_prompt        String
-  current_code          String?
-  current_version_index String  @default("")
-  userId                String
-  isPublished           Boolean @default(false)
-  
-  conversation Conversation[]
-  versions     Version[]
-  user         User
-}
-
-model Conversation {
-  id        String
-  role      Role     (user | assistant)
-  content   String
-  timestamp DateTime @default(now())
-  projectId String
-  
-  project WebsiteProject
-}
-
-model Version {
-  id          String
-  code        String
-  description String?
-  timestamp   DateTime @default(now())
-  projectId   String
-  
-  project WebsiteProject
-}
-
-model Transaction {
-  id        String
-  isPaid    Boolean  @default(false)
-  planId    String
-  amount    Float
-  credits   Int
-  userId    String
-  
-  user User
-}
-```
-
----
-
-## 🚢 Deployment
-
-### Deploy to Vercel
-
-#### Prerequisites
-- GitHub account with your code pushed
-- Vercel account
-- Production database (Neon recommended)
-
-#### Step 1: Deploy Backend
-
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import your GitHub repository
-3. **Configure**:
-   - Framework: Other
-   - Root Directory: `backend`
-   - Build Command: (leave empty)
-   - Output Directory: (leave empty)
-
-4. **Add Environment Variables**:
-   ```
-   DATABASE_URL=<your-neon-production-url>
-   BETTER_AUTH_SECRET=<generate-new-secret>
-   BETTER_AUTH_URL=https://your-backend.vercel.app
-   TRUSTED_ORIGINS=https://your-frontend.vercel.app
-   NODE_ENV=production
-   AI_API_KEY=<your-openrouter-key>
-   STRIPE_SECRET_KEY=<your-stripe-key>
-   STRIPE_WEBHOOK_SECRET=<your-webhook-secret>
-   ```
-
-5. Click **Deploy**
-
-#### Step 2: Deploy Frontend
-
-1. Add new project in Vercel
-2. Import same repository
-3. **Configure**:
-   - Framework: Vite
-   - Root Directory: `frontend`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-
-4. **Add Environment Variable**:
-   ```
-   VITE_BASEURL=https://your-backend.vercel.app
-   ```
-
-5. Click **Deploy**
-
-#### Step 3: Update Environment Variables
-
-After both deployments:
-
-1. Go to backend project settings
-2. Update `TRUSTED_ORIGINS` with actual frontend URL
-3. Update `BETTER_AUTH_URL` with actual backend URL
-4. Redeploy backend
-
-#### Step 4: Configure Stripe Webhook
-
-1. Go to [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks)
-2. Add endpoint: `https://your-backend.vercel.app/api/stripe`
-3. Select events: `payment_intent.succeeded`
-4. Copy signing secret
-5. Update `STRIPE_WEBHOOK_SECRET` in Vercel
-6. Redeploy backend
-
-### Database Migrations
-
-Run migrations on production database:
+Backend:
 
 ```bash
-# Set production database URL
-DATABASE_URL="your-production-url" npx prisma migrate deploy
-```
-
----
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Backend tests
 cd backend
 npm test
-
-# Frontend tests
-cd frontend
-npm test
+npx prisma validate
 ```
 
-### Manual Testing Checklist
+Frontend:
 
-- [ ] Sign up / Sign in
-- [ ] Create new project
-- [ ] AI generates website
-- [ ] Make revision
-- [ ] Save changes
-- [ ] Rollback to version
-- [ ] Publish/unpublish
-- [ ] Download code
-- [ ] Purchase credits
-- [ ] Credits added after payment
+```bash
+cd frontend
+npx tsc -b --noEmit
+npm run build
+```
 
----
+Targeted lint for recently changed builder files:
 
-## 🔒 Security
+```bash
+cd frontend
+npx eslint src/pages/Projects.tsx src/components/ProjectPreview.tsx src/components/Sidebar.tsx src/types/index.ts
+```
 
-### Best Practices Implemented
+## Deployment Options
 
-- ✅ **Authentication**: Session-based with httpOnly cookies
-- ✅ **Authorization**: All protected endpoints verify user identity
-- ✅ **CORS**: Restricted to trusted origins
-- ✅ **Environment Variables**: Secrets never committed to Git
-- ✅ **SQL Injection**: Protected by Prisma ORM
-- ✅ **XSS Protection**: React automatic escaping
-- ✅ **Webhook Verification**: Stripe signature validation
-- ✅ **HTTPS**: Required in production
-- ✅ **Rate Limiting**: (Recommended for production)
+### Option A: Single Backend Service
 
----
+Deploy one backend service that serves:
 
-## 🤝 Contributing
+- Express API routes.
+- Better Auth routes.
+- Stripe webhook.
+- Inngest endpoint at `/api/inngest`.
 
-Contributions are welcome! Please follow these steps:
+This is the simplest deployment.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Backend deploy commands:
 
-### Development Guidelines
+```bash
+cd backend
+npm ci
+npx prisma migrate deploy
+npm run build
+npm start
+```
 
-- Follow TypeScript best practices
-- Write meaningful commit messages
-- Update documentation for new features
-- Ensure all tests pass before submitting PR
+Point Inngest Cloud to:
 
----
+```text
+https://your-backend-domain.com/api/inngest
+```
 
-## 📄 License
+### Option B: API Plus Dedicated Worker
 
-This project is licensed under the ISC License.
+Deploy the API and worker separately.
 
----
+API:
 
-## 👨‍💻 Author
+```bash
+cd backend
+npm ci
+npx prisma migrate deploy
+npm run build
+npm start
+```
 
-**Alok Kumar**
+Worker:
 
-- GitHub: [@iamalok123](https://github.com/iamalok123)
-- Repository: [Zephyr AI Website Builder](https://github.com/iamalok123/zephyr-ai-website-builder)
+```bash
+cd backend
+npm ci
+npm run build
+npm run start:worker
+```
 
----
+Point Inngest Cloud to:
 
-## 🙏 Acknowledgments
+```text
+https://your-worker-domain.com/api/inngest
+```
 
-- [Better Auth](https://github.com/better-auth/better-auth) - Authentication solution
-- [Prisma](https://www.prisma.io/) - Next-generation ORM
-- [Vercel](https://vercel.com/) - Deployment platform
-- [Neon](https://neon.tech/) - Serverless PostgreSQL
-- [OpenRouter](https://openrouter.ai/) - AI API gateway
-- [Stripe](https://stripe.com/) - Payment processing
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
+This is better when generation load grows.
 
----
+### Frontend
 
-##  Support
+Build command:
 
-If you have any questions or need help, please:
+```bash
+npm run build
+```
 
-1. Check the [documentation](#-api-documentation)
-2. Search existing [issues](https://github.com/iamalok123/zephyr-ai-website-builder/issues)
-3. Open a new issue if needed
+Output directory:
 
----
+```text
+dist
+```
 
-## 🗺 Roadmap
+Production env:
 
-### Upcoming Features
+```env
+VITE_BASEURL="https://your-backend-domain.com"
+```
 
-- [ ] **Custom Domains**: Connect your own domain
-- [ ] **Templates Library**: Pre-built website templates
-- [ ] **Component Library**: Reusable UI components
-- [ ] **Team Collaboration**: Share projects with team members
-- [ ] **Version Comparison**: Visual diff between versions
-- [ ] **Export Options**: PDF, PNG screenshots
-- [ ] **AI Models**: Support for multiple AI models
-- [ ] **Code Editor**: In-browser IDE with syntax highlighting
-- [ ] **SEO Tools**: Meta tags, sitemap generation
-- [ ] **Analytics**: Track website performance
+## Production Environment Checklist
 
----
+Backend:
 
-<div align="center">
+```env
+DATABASE_URL="your-neon-production-url"
+BETTER_AUTH_SECRET="production-secret"
+BETTER_AUTH_URL="https://your-backend-domain.com"
+TRUSTED_ORIGINS="https://your-frontend-domain.com"
+NODE_ENV="production"
+AI_API_KEY="your-openrouter-key"
+STRIPE_SECRET_KEY="your-stripe-secret"
+STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
+INNGEST_EVENT_KEY="your-inngest-event-key"
+INNGEST_SIGNING_KEY="your-inngest-signing-key"
+```
 
-**⚡ Zephyr - Built with ❤️ using React, Node.js, PostgreSQL, and AI**
+Frontend:
 
-*Transforming ideas into reality, one prompt at a time.*
+```env
+VITE_BASEURL="https://your-backend-domain.com"
+```
 
-[⬆ Back to Top](#-zephyr---ai-powered-website-builder)
+## Commit Message
 
-</div>
+Recommended commit message for the current persistence and architecture work:
+
+```text
+Add durable generation jobs and credit ledger
+```
+
+## Security Notes
+
+- Generated HTML is untrusted. Keep iframe sandboxing strict, especially in public/community views.
+- Do not expose full user/project records from public APIs.
+- Do not use `ENABLE_INLINE_GENERATION_FALLBACK` in production.
+- Use Neon development branches for local testing.
+- Rotate any secret that was accidentally shared or committed.
+- Keep Stripe webhook verification enabled.
+
+## Acknowledgements
+
+- React
+- Vite
+- Tailwind CSS
+- Express
+- Prisma
+- Neon
+- Better Auth
+- OpenRouter
+- Inngest
+- Stripe
