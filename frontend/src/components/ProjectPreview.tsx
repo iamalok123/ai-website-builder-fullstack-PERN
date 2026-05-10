@@ -4,6 +4,19 @@ import { iframeScript } from "../assets/assets";
 import EditorPanel from "./EditorPanel";
 import LoaderSteps from "./LoaderSteps";
 
+type SelectedElement = {
+    tagName: string;
+    className: string;
+    text: string;
+    styles: {
+        padding: string;
+        margin: string;
+        backgroundColor: string;
+        color: string;
+        fontSize: string;
+    };
+}
+
 export interface ProjectPreviewProps {
     project: Project | null;
     isGenerating: boolean;
@@ -18,7 +31,7 @@ export interface ProjectPreviewRef {
 const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ project, isGenerating, device = 'desktop', showEditorPanel = true }, ref) => {
 
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const [selectedElement, setSelectedElement] = useState<any>(null);
+    const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
 
     useImperativeHandle(ref, () => ({
         getCode: () => {
@@ -68,7 +81,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
         }
     }, [])
 
-    const handleUpdate = (updates: any) => {
+    const handleUpdate = (updates: Record<string, unknown>) => {
         if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage({
                 type: 'UPDATE_ELEMENT',
@@ -95,6 +108,9 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
         tablet: 'w-[768px]',
         desktop: 'w-full',
     }
+    const sandboxPermissions = showEditorPanel
+        ? "allow-scripts allow-same-origin"
+        : "allow-scripts";
 
     return (
         <div className="relative h-full bg-gray-900 flex-1 rounded-xl overflow-hidden max-sm:ml-2">
@@ -105,7 +121,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
                         title={project.name}
                         srcDoc={injectPreview(project.current_code)}
                         className={`max-sm:w-full h-full ${resolutions[device]} mx-auto transition-all`}
-                        sandbox="allow-scripts allow-same-origin"
+                        sandbox={sandboxPermissions}
                     />
                     {showEditorPanel && selectedElement && (
                         <EditorPanel

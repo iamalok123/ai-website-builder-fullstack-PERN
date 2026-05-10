@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import openai from "../configs/openai.js";
-import { sanitizeAndFixHtml, AI_MODELS } from "../lib/sanitizeHtml.js";
+import { sanitizeAndFixHtml, sanitizeForPublicPreview, AI_MODELS } from "../lib/sanitizeHtml.js";
 
 
 
@@ -368,13 +368,27 @@ export const getPublishedProjects = async (req: Request, res: Response) => {
             where: {
                 isPublished: true
             },
-            include: {
-                user: true
+            select: {
+                id: true,
+                name: true,
+                initial_prompt: true,
+                current_code: true,
+                createdAt: true,
+                user: {
+                    select: {
+                        name: true
+                    }
+                }
             }
         })
 
         console.log('✅ getPublishedProjects completed - found', projects.length, 'published projects');
-        return res.status(200).json({ projects });
+        return res.status(200).json({
+            projects: projects.map((project) => ({
+                ...project,
+                current_code: project.current_code ? sanitizeForPublicPreview(project.current_code) : '',
+            }))
+        });
 
     } catch (error: any) {
         console.error(error.code || error.message);
@@ -392,15 +406,19 @@ export const getProjectById = async (req: Request, res: Response) => {
         const project = await prisma.websiteProject.findFirst({
             where: {
                 id: projectId,
-            }
+                isPublished: true,
+            },
+            select: {
+                current_code: true
+            },
         })
 
-        if (!project || project.isPublished === false || !project.current_code) {
+        if (!project || !project.current_code) {
             return res.status(404).json({ message: 'Project not found.' });
         }
 
         console.log('✅ getProjectById completed - projectId:', projectId);
-        return res.status(200).json({ code: project.current_code });
+        return res.status(200).json({ code: sanitizeForPublicPreview(project.current_code) });
 
     } catch (error: any) {
         console.error(error.code || error.message);

@@ -137,6 +137,27 @@ ${scriptContent.trim()}
     return code.trim();
 };
 
+/**
+ * Public previews should preserve styling but remove generated behavior.
+ * The Tailwind browser CDN is allowed because generated pages rely on it for
+ * styling; inline and unrelated scripts are stripped before public rendering.
+ */
+export const sanitizeForPublicPreview = (rawCode: string): string => {
+    let code = sanitizeAndFixHtml(rawCode);
+
+    code = code.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (scriptTag) => {
+        const srcMatch = scriptTag.match(/\ssrc=["']([^"']+)["']/i);
+        const src = srcMatch?.[1] || '';
+        const isAllowedTailwindScript = /^https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4/i.test(src);
+        return isAllowedTailwindScript ? scriptTag : '';
+    });
+
+    code = code.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    code = code.replace(/javascript:/gi, '');
+
+    return code.trim();
+};
+
 
 /**
  * Array of AI models to try in order. If the primary model fails or returns

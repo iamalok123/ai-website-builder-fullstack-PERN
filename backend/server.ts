@@ -6,6 +6,7 @@ import { auth } from "./lib/auth.js";
 import userRouter from './routes/userRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import { stripeWebhook } from './controllers/stripeWebhook.js';
+import { authRateLimit } from './middlewares/rateLimit.js';
 
 const app = express();
 
@@ -19,6 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.post('/api/stripe', express.raw({type: 'application/json'}), stripeWebhook);
 
+app.use('/api/auth', authRateLimit);
 app.all('/api/auth/{*any}', toNodeHandler(auth));
 
 app.use(express.json({limit: '50mb'}));
