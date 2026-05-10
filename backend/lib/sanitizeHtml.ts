@@ -164,7 +164,7 @@ export const sanitizeForPublicPreview = (rawCode: string): string => {
  * empty content, the next model in the list is tried.
  */
 export const AI_MODELS = [
-    "arcee-ai/trinity-large-preview:free",
+    "openrouter/free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "minimax/minimax-m2.5:free",
     "qwen/qwen3.6-plus:free",

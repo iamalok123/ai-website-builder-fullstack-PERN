@@ -29,6 +29,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
   transactions Transaction[]
+  generationJobs GenerationJob[]
+  creditLedger CreditLedger[]
 
   @@map("user")
 }
@@ -39,16 +41,33 @@ model WebsiteProject {
   initial_prompt        String
   current_code          String?
   current_version_index String  @default("")
+  currentVersionId      String?
+  generationStatus      GenerationStatus @default(completed)
+  generationError       String?
   userId                String
   isPublished           Boolean @default(false)
 
   // Relations
   conversation Conversation[]
   versions     Version[]
+  generationJobs GenerationJob[]
+  creditLedger CreditLedger[]
   user         User           @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum GenerationStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum GenerationJobType {
+  initial
+  revision
 }
 
 enum Role {
@@ -78,6 +97,59 @@ model Version {
   project WebsiteProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
+enum CreditLedgerType {
+  debit
+  credit
+  refund
+  purchase
+}
+
+model GenerationJob {
+  id             String              @id @default(uuid())
+  type           GenerationJobType
+  status         GenerationStatus    @default(queued)
+  prompt         String
+  enhancedPrompt String?
+  error          String?
+  attempts       Int                 @default(0)
+  userId         String
+  projectId      String
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  // Relations
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project WebsiteProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model CreditLedger {
+  id            String           @id @default(uuid())
+  type          CreditLedgerType
+  amount        Int
+  reason        String
+  balanceAfter  Int?
+  userId        String
+  projectId     String?
+  transactionId String?
+  jobId         String?
+  createdAt     DateTime         @default(now())
+
+  // Relations
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project     WebsiteProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  transaction Transaction?    @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([transactionId])
+}
+
 model Transaction {
   id        String   @id @default(uuid())
   isPaid    Boolean  @default(false)
@@ -90,6 +162,7 @@ model Transaction {
 
   // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditLedger CreditLedger[]
 }
 
 model Session {

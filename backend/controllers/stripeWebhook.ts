@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Stripe from "stripe";
 import prisma from "../lib/prisma.js";
+import { recordCreditPurchase } from "../services/creditService.js";
 
 
 export const stripeWebhook = async (req: Request, res: Response) => {
@@ -36,25 +37,30 @@ export const stripeWebhook = async (req: Request, res: Response) => {
                 const { transactionId, appId } = session.metadata as { transactionId: string, appId: string };
 
                 if (appId == "ai-website-builder" && transactionId) {
-                    const transaction = await prisma.transaction.update({
-                        where: {
-                            id: transactionId,
-                        },
-                        data: {
-                            isPaid: true,
-                        },
-                    });
+                    await prisma.$transaction(async (tx) => {
+                        const transaction = await tx.transaction.findUnique({
+                            where: { id: transactionId }
+                        });
 
-                    // Add credits to the user data
-                    await prisma.user.update({
-                        where: {
-                            id: transaction.userId,
-                        },
-                        data: {
-                            credits: {
-                                increment: transaction.credits,
+                        if (!transaction || transaction.isPaid) {
+                            return;
+                        }
+
+                        await tx.transaction.update({
+                            where: {
+                                id: transactionId,
                             },
-                        },
+                            data: {
+                                isPaid: true,
+                            },
+                        });
+
+                        await recordCreditPurchase(tx, {
+                            userId: transaction.userId,
+                            amount: transaction.credits,
+                            reason: "Stripe credit purchase",
+                            transactionId: transaction.id
+                        });
                     });
                 }
                 break;

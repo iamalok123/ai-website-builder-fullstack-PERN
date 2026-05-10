@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "tsx server.ts",
     "server": "nodemon --exec tsx server.ts",
+    "inngest:dev": "npx --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "worker": "tsx worker.ts",
     "build": "tsc",
+    "test": "npm run build && node --test dist/tests/*.test.js",
     "start": "node dist/server.js",
+    "start:worker": "node dist/worker.js",
     "postinstall": "prisma generate"
   },
   "keywords": [],
@@ -23,6 +27,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "inngest": "^4.3.0",
     "openai": "^6.16.0",
     "pg": "^8.17.1",
     "stripe": "^20.2.0",

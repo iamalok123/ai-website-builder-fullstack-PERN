@@ -9,7 +9,7 @@ export interface User {
 
 export interface Message {
     id: string;
-    role: any;
+    role: 'user' | 'assistant';
     content: string;
     timestamp: string;
 }
@@ -20,11 +20,16 @@ export interface Version {
     code: string;
 }
 
+export type GenerationStatus = 'queued' | 'running' | 'completed' | 'failed';
+
 export interface Project {
     id: string;
     name: string;
     initial_prompt: string;
-    current_code: string;
+    current_code: string | null;
+    currentVersionId?: string | null;
+    generationStatus?: GenerationStatus;
+    generationError?: string | null;
     createdAt: string;
     updatedAt: string;
     userId: string;

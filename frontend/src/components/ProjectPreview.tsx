@@ -140,6 +140,15 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
                         />
                     )}
                 </div>
+            ) : project?.generationStatus === 'failed' ? (
+                <div className="flex h-full items-center justify-center p-6 text-center">
+                    <div className="max-w-md rounded-lg border border-red-500/40 bg-red-950/40 p-5">
+                        <p className="text-sm font-semibold text-red-100">Generation failed</p>
+                        <p className="mt-2 text-sm text-red-200">
+                            {project.generationError || "The website could not be generated. Your credits were restored, so you can try again."}
+                        </p>
+                    </div>
+                </div>
             ) : isGenerating && (
                 <LoaderSteps />
             )}

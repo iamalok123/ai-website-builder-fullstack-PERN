@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
-import openai from "../configs/openai.js";
-import { sanitizeAndFixHtml, sanitizeForPublicPreview, AI_MODELS } from "../lib/sanitizeHtml.js";
+import { sanitizeAndFixHtml, sanitizeForPublicPreview } from "../lib/sanitizeHtml.js";
+import { InsufficientCreditsError } from "../services/creditService.js";
+import { createRevisionGenerationJob } from "../services/projectService.js";
 
 
 
@@ -12,221 +13,34 @@ export const makeRevision = async (req: Request, res: Response) => {
         const projectId = req.params.projectId as string;
         const { message } = req.body;
 
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId
-            }
-        })
-
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized User.' });
-        }
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
-
-        if (user.credits < 5) {
-            return res.status(403).json({ message: 'Add more credits to make changes.' });
         }
 
         if (!message || message.trim() === "") {
             return res.status(400).json({ message: 'Please enter a valid prompt.' });
         }
 
-        const currentProject = await prisma.websiteProject.findUnique({
-            where: {
-                id: projectId,
-                userId: userId
-            },
-            include: {
-                versions: true
-            }
-        })
-
-        if (!currentProject) {
-            return res.status(404).json({ message: 'Project not found.' });
-        }
-
-        await prisma.conversation.create({
-            data: {
-                role: 'user',
-                content: message,
-                projectId
-            }
-        })
-
-        // Update user's credits
-        await prisma.user.update({
-            where: {
-                id: userId
-            },
-            data: {
-                credits: {
-                    decrement: 5
-                }
-            }
-        })
-
-        // Enhance user prompt
-        let enhancedPrompt = message;
-        try {
-            const promptEnhanceResponce = await openai.chat.completions.create({
-                model: AI_MODELS[0],
-                temperature: 0.7,
-                max_tokens: 300,
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are a prompt enhancer for website edits. Make the user's change request clearer and more specific for a web developer. Mention specific Tailwind classes or colors if relevant. Keep it simple — no complex animations, SVGs, or iframes. Return ONLY the enhanced request in 1-2 concise sentences.`
-                    },
-                    {
-                        role: "user",
-                        content: `User's request: "${message}"`
-                    }
-                ]
-            });
-            enhancedPrompt = promptEnhanceResponce.choices[0].message.content || message;
-        } catch (enhanceErr) {
-            console.warn('Prompt enhancement failed, using original message:', enhanceErr);
-        }
-
-        await prisma.conversation.create({
-            data: {
-                role: 'assistant',
-                content: `I have enhanced your prompt to : "${enhancedPrompt}"`,
-                projectId
-            }
-        })
-
-        await prisma.conversation.create({
-            data: {
-                role: 'assistant',
-                content: `Now making changes to your website...`,
-                projectId
-            }
-        })
-
-        // Generate website code with retry logic + model rotation
-        let code = '';
-        let attempts = 0;
-        const maxAttempts = 3;
-
-        while (attempts < maxAttempts && !code) {
-            const model = AI_MODELS[attempts % AI_MODELS.length];
-            attempts++;
-            try {
-                console.log(`Generating revision with ${model}... Attempt ${attempts}/${maxAttempts}`);
-                const codeGenerationResponse = await openai.chat.completions.create({
-                    model,
-                    temperature: 0.7,
-                    messages: [
-                        {
-                            role: "system",
-                            content: `You are a web developer. Apply the user's requested changes to the existing HTML website code. Output ONLY the complete updated HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
-
-RULES:
-- Use Tailwind CSS for all styling
-- Keep <meta name="viewport" content="width=device-width, initial-scale=1.0"> in <head>
-- Keep Tailwind CDN: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-- Maintain mobile-first responsive design: grid-cols-1 on mobile, md: breakpoints for larger screens
-- Flex layouts: flex-col md:flex-row
-- Add overflow-hidden on containers to prevent horizontal scroll
-- Use getElementById for DOM selection — never querySelector with Tailwind classes
-- High contrast: dark bg = light text, light bg = dark text
-- Images: https://picsum.photos/{w}/{h}?random=N only. No fabricated URLs
-- Icons: emoji only (🚀 ⚡ 🎯). NO SVGs, NO iframes
-- JS: Only hamburger menu toggle with getElementById. No complex JS
-- Keep the result concise and fast-loading
-- Output ONLY the complete HTML. Nothing else.`
-                        },
-                        {
-                            role: "user",
-                            content: `Current website code:\n${currentProject.current_code}\n\nRequested changes: ${enhancedPrompt}`
-                        }
-                    ]
-                });
-
-                const result = codeGenerationResponse.choices[0].message.content || '';
-                if (result && (result.includes('<html') || result.includes('<!DOCTYPE') || result.includes('<head'))) {
-                    code = result;
-                    break;
-                }
-                console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
-            } catch (err) {
-                console.error(`Attempt ${attempts} with ${model} failed:`, err);
-                if (attempts === maxAttempts) throw err;
-                await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-        }
-
-        if (!code) {
-            await prisma.conversation.create({
-                data: {
-                    role: 'assistant',
-                    content: "Unable to generate your code, please try again.",
-                    projectId
-                }
-            })
-
-            await prisma.user.update({
-                where: {
-                    id: userId
-                },
-                data: {
-                    credits: {
-                        increment: 5
-                    }
-                }
-            })
-
-            return;
-        }
-
-        // Clean and sanitize the generated code for mobile compatibility
-        const cleanedCode = sanitizeAndFixHtml(code);
-
-        // Create version for the project
-        const version = await prisma.version.create({
-            data: {
-                code: cleanedCode,
-                description: "Changes made by user",
-                projectId
-            }
-        })
-
-        await prisma.conversation.create({
-            data: {
-                role: 'assistant',
-                content: "I've created your website! You can now preview it and request any changes.",
-                projectId
-            }
-        })
-
-        await prisma.websiteProject.update({
-            where: {
-                id: projectId
-            },
-            data: {
-                current_code: cleanedCode,
-                current_version_index: version.id
-            }
-        })
-
-        console.log('✅ makeRevision completed - projectId:', projectId);
-        return res.status(200).json({ message: "Changes made successfully." });
+        const job = await createRevisionGenerationJob(userId, projectId, message);
+        console.log('✅ makeRevision queued - projectId:', projectId, 'jobId:', job.jobId);
+        return res.status(202).json({ message: "Revision queued successfully.", jobId: job.jobId, generationStatus: "queued" });
 
     } catch (error: any) {
-        await prisma.user.update({
-            where: {
-                id: userId
-            },
-            data: {
-                credits: {
-                    increment: 5
-                }
-            }
-        })
+        if (error instanceof InsufficientCreditsError) {
+            return res.status(403).json({ message: 'Add more credits to make changes.' });
+        }
+
+        if (error.message === "Project not found.") {
+            return res.status(404).json({ message: error.message });
+        }
+
+        if (
+            error.message === "Please wait until the first generation is complete before requesting changes." ||
+            error.message === "A generation is already in progress for this project."
+        ) {
+            return res.status(409).json({ message: error.message });
+        }
+
         console.error(error.code || error.message);
         return res.status(500).json({ message: error.message });
     }
@@ -277,7 +91,10 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
             },
             data: {
                 current_code: version.code,
-                current_version_index: versionId
+                current_version_index: versionId,
+                currentVersionId: versionId,
+                generationStatus: "completed",
+                generationError: null
             }
         })
 
@@ -366,7 +183,8 @@ export const getPublishedProjects = async (req: Request, res: Response) => {
 
         const projects = await prisma.websiteProject.findMany({
             where: {
-                isPublished: true
+                isPublished: true,
+                generationStatus: "completed"
             },
             select: {
                 id: true,
@@ -407,6 +225,7 @@ export const getProjectById = async (req: Request, res: Response) => {
             where: {
                 id: projectId,
                 isPublished: true,
+                generationStatus: "completed",
             },
             select: {
                 current_code: true
@@ -471,7 +290,10 @@ export const saveProjectCode = async (req: Request, res: Response) => {
                 },
                 data: {
                     current_code: cleanedCode,
-                    current_version_index: version.id
+                    current_version_index: version.id,
+                    currentVersionId: version.id,
+                    generationStatus: "completed",
+                    generationError: null
                 }
             })
         })
