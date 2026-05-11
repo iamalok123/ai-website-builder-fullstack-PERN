@@ -95,6 +95,9 @@ NODE_ENV="development"
 
 AI_API_KEY="your-openrouter-api-key"
 
+GOOGLE_CLIENT_ID="your-google-oauth-client-id"
+GOOGLE_CLIENT_SECRET="your-google-oauth-client-secret"
+
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 
@@ -247,6 +250,19 @@ Better Auth is mounted under:
 ```text
 /api/auth/*
 ```
+
+Email/password and Google OAuth are enabled. For local Google OAuth, configure Google Cloud Console with:
+
+```text
+Authorized JavaScript origins:
+http://localhost:5173
+http://localhost:3000
+
+Authorized redirect URI:
+http://localhost:3000/api/auth/callback/google
+```
+
+Implementation details are documented in `docs/google-oauth-implementation.md`.
 
 ### User
 
@@ -416,6 +432,8 @@ BETTER_AUTH_URL="https://your-backend-domain.com"
 TRUSTED_ORIGINS="https://your-frontend-domain.com"
 NODE_ENV="production"
 AI_API_KEY="your-openrouter-key"
+GOOGLE_CLIENT_ID="your-google-oauth-client-id"
+GOOGLE_CLIENT_SECRET="your-google-oauth-client-secret"
 STRIPE_SECRET_KEY="your-stripe-secret"
 STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
 INNGEST_EVENT_KEY="your-inngest-event-key"

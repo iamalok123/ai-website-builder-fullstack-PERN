@@ -97,7 +97,7 @@ const Navbar = () => {
             {!session?.user ? (
               <button
                 className="px-5 py-1.5 text-sm bg-linear-to-r from-amber-500 to-amber-600 text-white active:scale-95 hover:from-amber-600 hover:to-amber-700 transition rounded-full font-medium"
-                onClick={() => navigate('/auth/signin')}
+                onClick={() => navigate('/auth/sign-in')}
               >
                 Get started
               </button>

@@ -62,5 +62,6 @@ The production build succeeds. Vite currently warns that the main JavaScript bun
 ## Notes
 
 - API calls use `withCredentials: true`, so backend CORS and Better Auth trusted origins must include the frontend origin.
+- Sign-in and sign-up use Better Auth UI with email/password and Google OAuth. Google credentials are configured on the backend.
 - Public and preview pages render generated HTML inside sandboxed iframes through `ProjectPreview`.
 - The builder/editor flow depends on authenticated backend APIs and cannot be fully exercised without a configured backend, database, AI provider, and Inngest/Stripe services for those flows.

@@ -18,6 +18,7 @@ model User {
   id            String @id
   email         String
   name          String
+  image         String?
   totalCreation Int    @default(0)
   credits       Int    @default(20)
   createdAt     DateTime  @default(now())
@@ -32,6 +33,7 @@ model User {
   generationJobs GenerationJob[]
   creditLedger CreditLedger[]
 
+  @@unique([email])
   @@map("user")
 }
 

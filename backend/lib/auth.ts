@@ -5,6 +5,9 @@ import prisma from "./prisma.js";
 
 
 const trustedOrigins = process.env.TRUSTED_ORIGINS?.split(",") || [];
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleOAuthConfigured = Boolean(googleClientId && googleClientSecret);
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {
@@ -13,13 +16,27 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    socialProviders: googleOAuthConfigured ? {
+        google: {
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
+            prompt: "select_account",
+        },
+    } : undefined,
+    account: {
+        accountLinking: {
+            enabled: true,
+            trustedProviders: ["google"],
+        },
+        updateAccountOnSignIn: true,
+    },
     user : {
         deleteUser: {
             enabled: true,
         }
     },
     trustedOrigins,
-    baseUrl: process.env.BETTER_AUTH_URL!,
+    baseURL: process.env.BETTER_AUTH_URL!,
     secret: process.env.BETTER_AUTH_SECRET!,
     advanced: {
         cookies: {
