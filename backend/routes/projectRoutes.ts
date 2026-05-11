@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middlewares/auth.js";
-import { makeRevision, saveProjectCode, rollbackToVersion, deleteProject, getProjectPreview, getPublishedProjects, getProjectById } from "../controllers/ProjectController.js";
+import { makeRevision, saveProjectCode, rollbackToVersion, deleteProject, getProjectPreview, getPublishedProjects, getProjectById, retryGeneration } from "../controllers/ProjectController.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { aiGenerationRateLimit, projectMutationRateLimit, publicReadRateLimit } from "../middlewares/rateLimit.js";
 import { projectIdParamSchema, revisionBodySchema, rollbackParamSchema, saveProjectCodeBodySchema } from "../lib/validationSchemas.js";
@@ -9,6 +9,7 @@ import { projectIdParamSchema, revisionBodySchema, rollbackParamSchema, saveProj
 const projectRoutes = express.Router();
 
 projectRoutes.post('/revision/:projectId', protect, aiGenerationRateLimit, validateRequest({ params: projectIdParamSchema, body: revisionBodySchema }), makeRevision);
+projectRoutes.post('/retry/:projectId', protect, aiGenerationRateLimit, validateRequest({ params: projectIdParamSchema }), retryGeneration);
 projectRoutes.put('/save/:projectId', protect, projectMutationRateLimit, validateRequest({ params: projectIdParamSchema, body: saveProjectCodeBodySchema }), saveProjectCode);
 projectRoutes.get('/rollback/:projectId/:versionId', protect, projectMutationRateLimit, validateRequest({ params: rollbackParamSchema }), rollbackToVersion);
 projectRoutes.delete('/:projectId', protect, projectMutationRateLimit, validateRequest({ params: projectIdParamSchema }), deleteProject);

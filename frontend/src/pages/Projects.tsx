@@ -42,8 +42,11 @@ const Projects = () => {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isRetrying, setIsRetrying] = useState(false);
 
     const previewRef = useRef<ProjectPreviewRef>(null);
+    const canUseGeneratedWebsite = Boolean(project?.current_code) && !isGenerating && project?.generationStatus !== 'queued' && project?.generationStatus !== 'running';
+    const disabledActionClass = 'cursor-not-allowed opacity-50 hover:border-gray-700 hover:from-blue-700 hover:to-blue-600 hover:bg-gray-800';
 
     const fetchProject = useCallback(async () => {
         try {
@@ -59,6 +62,10 @@ const Projects = () => {
     }, [projectId]);
 
     const saveProject = async () => {
+        if (!canUseGeneratedWebsite) {
+            toast.error('Please wait until generation is complete before saving.');
+            return;
+        }
         if (!previewRef.current) {
             return;
         }
@@ -80,6 +87,10 @@ const Projects = () => {
 
     // Download code (index.html)
     const downloadCode = () => {
+        if (!canUseGeneratedWebsite) {
+            toast.error('Download will be available after generation completes.');
+            return;
+        }
         const code = previewRef.current?.getCode() || project?.current_code;
         if (!code) {
             if (isGenerating) {
@@ -99,6 +110,10 @@ const Projects = () => {
     }
 
     const togglePublish = async () => {
+        if (!canUseGeneratedWebsite) {
+            toast.error('Publishing will be available after generation completes.');
+            return;
+        }
         try {
             const { data } = await api.get(`/api/user/publish-toggle/${projectId}`);
             toast.success(data.message);
@@ -107,6 +122,25 @@ const Projects = () => {
         } catch (error: unknown) {
             toast.error(getErrorMessage(error));
             console.log(error);
+        }
+    }
+
+    const retryGeneration = async () => {
+        if (!projectId || isGenerating || isRetrying) {
+            return;
+        }
+
+        setIsRetrying(true);
+        try {
+            const { data } = await api.post(`/api/project/retry/${projectId}`);
+            toast.success(data.message || 'Generation retry queued.');
+            await fetchProject();
+            setIsGenerating(true);
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error));
+            console.log(error);
+        } finally {
+            setIsRetrying(false);
         }
     }
 
@@ -143,7 +177,9 @@ const Projects = () => {
                     <img src="/logo.svg" alt="logo" className="h-6 mr-2 cursor-pointer" style={{ filter: 'brightness(1.2) sepia(1) saturate(3) hue-rotate(15deg)' }} onClick={() => navigate('/')} />
                     <div className="max-w-64 sm:max-w-xs">
                         <p className="text-sm font-medium capitalize truncate">{project.name}</p>
-                        <p className="text-xs text-gray-400 -mt-0.5">Previewing last saved prompt</p>
+                        <p className="text-xs text-gray-400 -mt-0.5">
+                            {isGenerating ? 'Generating website...' : project.generationStatus === 'failed' ? 'Generation failed' : 'Ready to edit'}
+                        </p>
                     </div>
 
                     <div className="sm:hidden flex-1 flex justify-end">
@@ -174,7 +210,11 @@ const Projects = () => {
                 </div>
                 {/* Right */}
                 <div className="flex items-center justify-end gap-3 flex-1 text-xs sm:text-sm">
-                    <button disabled={isSaving} onClick={saveProject} className='max-sm:hidden bg-gray-800 hover:bg-gray-700 text-white px-3.5 py-1 flex items-center gap-2 rounded sm:rounded-sm transition-colors border border-gray-700'>
+                    <button
+                        disabled={isSaving || !canUseGeneratedWebsite}
+                        onClick={saveProject}
+                        className={`max-sm:hidden bg-gray-800 hover:bg-gray-700 text-white px-3.5 py-1 flex items-center gap-2 rounded sm:rounded-sm transition-colors border border-gray-700 ${!canUseGeneratedWebsite ? disabledActionClass : ''}`}
+                    >
                         {isSaving ? (
                             <Loader2Icon className="animate-spin size-6" />
                         ) : (
@@ -182,15 +222,32 @@ const Projects = () => {
                         )}
                         Save
                     </button>
-                    <Link target="_blank" to={`/preview/${projectId}`}
-                        className="flex items-center gap-2 px-4 py-1 rounded sm:rounded-sm border border-gray-700 hover:border-gray-500 transition-colors">
-                        <FullscreenIcon size={16} /> Preview
-                    </Link>
-                    <button onClick={downloadCode} className='bg-linear-to-br from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white px-3.5 py-1 flex items-center gap-2 rounded sm:rounded-sm transition-colors'>
+                    {canUseGeneratedWebsite ? (
+                        <Link target="_blank" to={`/preview/${projectId}`}
+                            className="flex items-center gap-2 px-4 py-1 rounded sm:rounded-sm border border-gray-700 hover:border-gray-500 transition-colors">
+                            <FullscreenIcon size={16} /> Preview
+                        </Link>
+                    ) : (
+                        <button
+                            disabled
+                            className={`flex items-center gap-2 px-4 py-1 rounded sm:rounded-sm border border-gray-700 transition-colors ${disabledActionClass}`}
+                        >
+                            <FullscreenIcon size={16} /> Preview
+                        </button>
+                    )}
+                    <button
+                        disabled={!canUseGeneratedWebsite}
+                        onClick={downloadCode}
+                        className={`bg-linear-to-br from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white px-3.5 py-1 flex items-center gap-2 rounded sm:rounded-sm transition-colors ${!canUseGeneratedWebsite ? disabledActionClass : ''}`}
+                    >
                         <ArrowBigDownDashIcon size={16} />
                         Download
                     </button>
-                    <button onClick={togglePublish} className='bg-linear-to-br from-indigo-700 to-indigo-600 hover:from-indigo-600 hover:to-indigo-500 text-white px-3.5 py-1 flex items-center gap-2 rounded sm:rounded-sm transition-colors'>
+                    <button
+                        disabled={!canUseGeneratedWebsite}
+                        onClick={togglePublish}
+                        className={`bg-linear-to-br from-indigo-700 to-indigo-600 hover:from-indigo-600 hover:to-indigo-500 text-white px-3.5 py-1 flex items-center gap-2 rounded sm:rounded-sm transition-colors ${!canUseGeneratedWebsite ? 'cursor-not-allowed opacity-50 hover:from-indigo-700 hover:to-indigo-600' : ''}`}
+                    >
                         {project.isPublished ? (
                             <EyeOffIcon size={16} />
                         ) : (
@@ -208,7 +265,14 @@ const Projects = () => {
             <div className="flex-1 flex overflow-auto">
                 <Sidebar isMenuOpen={isMenuOpen} project={project} setProject={(p) => setProject(p)} isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
                 <div className="flex-1 p-2 max-sm:pl-2 sm:pl-0">
-                    <ProjectPreview ref={previewRef} project={project} isGenerating={isGenerating} device={device} />
+                    <ProjectPreview
+                        ref={previewRef}
+                        project={project}
+                        isGenerating={isGenerating}
+                        device={device}
+                        onRetryGeneration={retryGeneration}
+                        isRetrying={isRetrying}
+                    />
                 </div>
             </div>
         </div>

@@ -18,6 +18,7 @@ const Preview = () => {
     const { projectId, versionId } = useParams();
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
         let isMounted = true;
@@ -34,7 +35,9 @@ const Preview = () => {
                     setCode(selectedVersion?.code || data.project.current_code);
                 })
                 .catch((error) => {
-                    toast.error(getErrorMessage(error));
+                    const message = getErrorMessage(error);
+                    setErrorMessage(message);
+                    toast.error(message);
                 })
                 .finally(() => {
                     if (isMounted) {
@@ -52,6 +55,17 @@ const Preview = () => {
         return (
             <div className="flex items-center justify-center h-screen">
                 <Loader2Icon className="animate-spin size-7 text-indigo-200" />
+            </div>
+        )
+    }
+
+    if (errorMessage) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-950 p-6 text-center text-white">
+                <div className="max-w-md rounded-lg border border-gray-700 bg-gray-900 p-6">
+                    <p className="text-lg font-medium">Preview unavailable</p>
+                    <p className="mt-2 text-sm text-gray-300">{errorMessage}</p>
+                </div>
             </div>
         )
     }

@@ -5,6 +5,37 @@ import { refundCredits } from "./creditService.js";
 
 const GENERATION_CREDIT_COST = 5;
 const MAX_ATTEMPTS = 3;
+const DEFAULT_GENERATION_TIMEOUT_MS = 8 * 60 * 1000;
+const DEFAULT_REVISION_TIMEOUT_MS = 4 * 60 * 1000;
+const DEFAULT_AI_REQUEST_TIMEOUT_MS = 2 * 60 * 1000;
+const DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS = 30 * 1000;
+
+export const GENERATION_TIMEOUT_MS = Number(process.env.GENERATION_TIMEOUT_MS || DEFAULT_GENERATION_TIMEOUT_MS);
+export const REVISION_TIMEOUT_MS = Number(process.env.REVISION_TIMEOUT_MS || DEFAULT_REVISION_TIMEOUT_MS);
+const AI_REQUEST_TIMEOUT_MS = Number(process.env.AI_REQUEST_TIMEOUT_MS || DEFAULT_AI_REQUEST_TIMEOUT_MS);
+const PRISMA_TRANSACTION_TIMEOUT_MS = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS || DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS);
+const ENABLE_REVISION_PROMPT_ENHANCEMENT = process.env.ENABLE_REVISION_PROMPT_ENHANCEMENT === "true";
+
+const getJobTimeoutMs = (type?: "initial" | "revision") => {
+    return type === "revision" ? REVISION_TIMEOUT_MS : GENERATION_TIMEOUT_MS;
+};
+
+const transactionOptions = {
+    timeout: PRISMA_TRANSACTION_TIMEOUT_MS,
+    maxWait: 10_000
+};
+
+const getStaleGenerationCutoff = () => new Date(Date.now() - Math.max(GENERATION_TIMEOUT_MS, REVISION_TIMEOUT_MS));
+const getRequestTimeout = (deadline: number) => {
+    const remaining = deadline - Date.now();
+    return Math.max(1_000, Math.min(AI_REQUEST_TIMEOUT_MS, remaining));
+};
+
+const assertGenerationDeadline = (deadline: number) => {
+    if (Date.now() >= deadline) {
+        throw new Error("Generation timed out before it completed. Your credits were restored, so you can try again.");
+    }
+};
 
 const isHtmlResponse = (value: string) => {
     return value.includes("<html") || value.includes("<!DOCTYPE") || value.includes("<head");
@@ -15,87 +46,148 @@ const getCompletionText = (response: unknown) => {
     return completion.choices?.[0]?.message?.content || "";
 };
 
+const getProviderStatus = (error: unknown) => {
+    const providerError = error as {
+        status?: number;
+        code?: number | string;
+        error?: { code?: number | string };
+    };
+
+    if (typeof providerError.status === "number") return providerError.status;
+    if (providerError.code === 401 || providerError.code === "401") return 401;
+    if (providerError.code === 403 || providerError.code === "403") return 403;
+    if (providerError.error?.code === 401 || providerError.error?.code === "401") return 401;
+    if (providerError.error?.code === 403 || providerError.error?.code === "403") return 403;
+    return undefined;
+};
+
+const isProviderAuthError = (error: unknown) => {
+    const status = getProviderStatus(error);
+    return status === 401 || status === 403;
+};
+
+const providerAuthError = () => new Error(
+    "AI provider authentication failed. Check backend AI_API_KEY and make sure it is a valid OpenRouter API key with access enabled."
+);
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const enhanceInitialPrompt = async (initialPrompt: string) => {
+const enhanceInitialPrompt = async (initialPrompt: string, deadline: number) => {
     try {
+        assertGenerationDeadline(deadline);
         const response = await openai.chat.completions.create({
             model: AI_MODELS[0],
             temperature: 0.7,
-            max_tokens: 500,
+            max_tokens: 900,
             messages: [
                 {
                     role: "system",
-                    content: `You are a prompt enhancer. Take the user's website request and output a clear, concise, actionable brief for a web developer. Include: 1) A color scheme (2-3 hex colors) 2) Theme: dark or light 3) List 3-5 sections (Nav, Hero, Features, CTA, Footer) with brief descriptions 4) Mobile-first with hamburger menu. Keep it to 1-2 short paragraphs. No markdown. No complex features (no SVGs, animations, carousels). Output ONLY the enhanced brief.`
+                    content: `You are a senior product designer writing a build brief for an AI web developer. Transform the user's request into a specific, tasteful one-page website brief.
+
+Your brief must include:
+- Brand direction: choose one clear visual mood, such as premium SaaS, editorial portfolio, wellness, fintech, creative studio, restaurant, education, or local service.
+- Palette: choose exactly 4 hex colors with roles: background, surface, primary accent, secondary accent. Avoid random rainbow colors and avoid low contrast.
+- Typography: choose a polished Google Font pairing from Inter, Manrope, Plus Jakarta Sans, Playfair Display, Space Grotesk, DM Sans, or Merriweather. Explain heading/body usage.
+- Layout: 5 sections max: Nav, Hero, Proof/Stats or About, Features/Services, CTA/Contact, Footer. Give each section a clear visual purpose.
+- Composition rules: strong hero, generous whitespace, consistent 8/12/16/24/32/48px spacing rhythm, max width, responsive grid, visible CTA, professional cards, no clutter.
+- Asset rules: use only picsum image URLs if images help; otherwise use elegant type, borders, chips, stats, and layout instead of weak decorative icons.
+
+Keep it concise but detailed. No markdown headings. No SVGs, iframes, carousels, complex animations, or fabricated asset URLs. Output ONLY the enhanced brief.`
                 },
                 {
                     role: "user",
                     content: initialPrompt
                 }
             ]
-        });
+        }, { timeout: getRequestTimeout(deadline) });
 
         return getCompletionText(response) || initialPrompt;
     } catch (error) {
+        if (isProviderAuthError(error)) {
+            throw providerAuthError();
+        }
+
         console.warn("Prompt enhancement failed, using original prompt:", error);
         return initialPrompt;
     }
 };
 
-const enhanceRevisionPrompt = async (message: string) => {
+const enhanceRevisionPrompt = async (message: string, deadline: number) => {
     try {
+        assertGenerationDeadline(deadline);
         const response = await openai.chat.completions.create({
             model: AI_MODELS[0],
             temperature: 0.7,
-            max_tokens: 300,
+            max_tokens: 450,
             messages: [
                 {
                     role: "system",
-                    content: `You are a prompt enhancer for website edits. Make the user's change request clearer and more specific for a web developer. Mention specific Tailwind classes or colors if relevant. Keep it simple — no complex animations, SVGs, or iframes. Return ONLY the enhanced request in 1-2 concise sentences.`
+                    content: `You are a senior product designer improving a website edit request. Rewrite the user's request as a precise implementation instruction that preserves the existing site's design system.
+
+Include only what should change, and mention how to keep typography, spacing, contrast, responsive layout, and CTA hierarchy polished. If colors are involved, specify tasteful Tailwind-compatible color choices. Avoid SVGs, iframes, carousels, and complex JavaScript. Return ONLY 1-3 concise sentences.`
                 },
                 {
                     role: "user",
                     content: `User's request: "${message}"`
                 }
             ]
-        });
+        }, { timeout: getRequestTimeout(deadline) });
 
         return getCompletionText(response) || message;
     } catch (error) {
+        if (isProviderAuthError(error)) {
+            throw providerAuthError();
+        }
+
         console.warn("Prompt enhancement failed, using original message:", error);
         return message;
     }
 };
 
-const generateInitialWebsiteCode = async (prompt: string) => {
+const generateInitialWebsiteCode = async (prompt: string, deadline: number) => {
     let code = "";
 
     for (let attempts = 1; attempts <= MAX_ATTEMPTS && !code; attempts++) {
+        assertGenerationDeadline(deadline);
         const model = AI_MODELS[(attempts - 1) % AI_MODELS.length];
 
         try {
             console.log(`Generating website code with ${model}... Attempt ${attempts}/${MAX_ATTEMPTS}`);
             const response = await openai.chat.completions.create({
                 model,
-                temperature: 0.7,
+                temperature: 0.65,
+                max_tokens: 7000,
                 messages: [
                     {
                         role: "system",
-                        content: `You are a web developer. Generate a complete, working, single-page HTML website. Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
+                        content: `You are a senior frontend designer and developer. Generate a polished, production-quality, single-page HTML website. Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
 
 INCLUDE IN <head>:
 - <meta charset="UTF-8">
 - <meta name="viewport" content="width=device-width, initial-scale=1.0">
 - <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-- <style>body{font-family:'Inter',sans-serif;scroll-behavior:smooth;overflow-x:hidden}</style>
+- A Google Fonts link matching the design brief. Prefer Inter, Manrope, Plus Jakarta Sans, DM Sans, Space Grotesk, Playfair Display, or Merriweather.
+- <style> with body font-family, scroll-behavior:smooth, overflow-x:hidden, antialiased rendering, and a few tasteful custom utility styles if needed.
 
-STRUCTURE (3-5 sections, keep HTML under 250 lines):
-1. Nav: logo text + horizontal links on desktop, hamburger menu on mobile using getElementById toggle
-2. Hero: h1 heading, subtitle paragraph, CTA button
-3. Features/About: 3 cards in a grid with emoji icons (rocket, lightning, target, bulb, star, phone) — NO SVGs
-4. CTA or Contact section
-5. Footer with copyright and links
+DESIGN QUALITY BAR:
+- Create a beautiful, cohesive visual system, not a plain template.
+- Pick a restrained palette: background, surface, primary accent, secondary accent, and neutral text. Use them consistently.
+- Use high contrast text. Never put gray text on low-contrast colored backgrounds.
+- Use strong hierarchy: nav small, hero heading large, section headings clear, body readable.
+- Use whitespace intentionally: sections py-16 md:py-24, containers max-w-6xl or max-w-7xl, cards p-6 or p-8.
+- Use rounded-xl/2xl, subtle borders, soft shadows, badges/chips, stats, and alternating section backgrounds.
+- Do not make all sections the same color. Each section should feel related but visually distinct.
+- Align content carefully. Avoid awkward empty spaces, cramped cards, centered everything, or uneven grids.
+- Use tasteful imagery only when useful: picsum.photos URLs with fixed dimensions and object-cover.
+- Buttons must look premium: clear primary CTA, optional secondary CTA, hover state, focus-visible outline.
+
+STRUCTURE (4-6 sections, keep HTML under 320 lines):
+1. Nav: brand name, 3-4 links, primary action. Mobile hamburger using getElementById.
+2. Hero: memorable headline, supporting copy, 1-2 CTAs, optional visual/image/stat panel.
+3. Proof/About/Stats: credibility numbers, short story, or client-style proof.
+4. Features/Services: 3-6 cards with clear titles, useful copy, and consistent spacing.
+5. CTA/Contact/Pricing teaser: strong next action.
+6. Footer: compact links and brand line.
 
 MOBILE-FIRST RESPONSIVE:
 - Start with mobile layout, add md: and lg: breakpoints for larger screens
@@ -103,17 +195,11 @@ MOBILE-FIRST RESPONSIVE:
 - Flex: flex-col md:flex-row
 - Padding: px-4 md:px-8 lg:px-12, Section spacing: py-12 md:py-20
 - Container: max-w-7xl mx-auto overflow-hidden
-- Text: text-base md:text-lg, headings: text-2xl md:text-4xl
-
-DESIGN:
-- Clean, modern, professional look
-- High contrast: dark bg = white/light text, light bg = dark text
-- Buttons: solid bg with white text, rounded, hover states
-- Consistent spacing and rounded corners
+- Text: body text-base md:text-lg, hero headings text-4xl md:text-6xl, section headings text-2xl md:text-4xl
 
 STRICT RULES:
 - NO SVGs, NO iframes, NO complex animations, NO carousels, NO animated counters
-- Emoji only for icons
+- Avoid emojis unless the user explicitly asks for a playful style
 - Images: https://picsum.photos/{w}/{h}?random=N only (never fabricated URLs)
 - JS: ONLY hamburger menu toggle using getElementById. No other JavaScript
 - Place <script> before </body>
@@ -124,7 +210,7 @@ STRICT RULES:
                         content: prompt
                     }
                 ]
-            });
+            }, { timeout: getRequestTimeout(deadline) });
 
             const result = getCompletionText(response);
             if (isHtmlResponse(result)) {
@@ -135,7 +221,11 @@ STRICT RULES:
             console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
         } catch (error) {
             console.error(`Attempt ${attempts} with ${model} failed:`, error);
+            if (isProviderAuthError(error)) {
+                throw providerAuthError();
+            }
             if (attempts === MAX_ATTEMPTS) throw error;
+            assertGenerationDeadline(deadline);
             await wait(1500);
         }
     }
@@ -143,33 +233,40 @@ STRICT RULES:
     return code;
 };
 
-const generateRevisionWebsiteCode = async (currentCode: string, prompt: string) => {
+const generateRevisionWebsiteCode = async (currentCode: string, prompt: string, deadline: number) => {
     let code = "";
 
     for (let attempts = 1; attempts <= MAX_ATTEMPTS && !code; attempts++) {
+        assertGenerationDeadline(deadline);
         const model = AI_MODELS[(attempts - 1) % AI_MODELS.length];
 
         try {
             console.log(`Generating revision with ${model}... Attempt ${attempts}/${MAX_ATTEMPTS}`);
             const response = await openai.chat.completions.create({
                 model,
-                temperature: 0.7,
+                temperature: 0.6,
+                max_tokens: 7000,
                 messages: [
                     {
                         role: "system",
-                        content: `You are a web developer. Apply the user's requested changes to the existing HTML website code. Output ONLY the complete updated HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
+                        content: `You are a senior frontend designer and developer. Apply the user's requested changes to the existing HTML website and return a polished complete HTML document. Output ONLY the complete updated HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
 
 RULES:
+- Preserve the existing brand direction unless the user asks for a redesign.
+- Improve visual quality while editing: spacing, alignment, typography, contrast, CTA hierarchy, card balance, and responsive behavior must remain professional.
 - Use Tailwind CSS for all styling
 - Keep <meta name="viewport" content="width=device-width, initial-scale=1.0"> in <head>
 - Keep Tailwind CDN: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+- Keep or add polished Google Fonts if missing. Prefer Inter, Manrope, Plus Jakarta Sans, DM Sans, Space Grotesk, Playfair Display, or Merriweather.
 - Maintain mobile-first responsive design: grid-cols-1 on mobile, md: breakpoints for larger screens
 - Flex layouts: flex-col md:flex-row
 - Add overflow-hidden on containers to prevent horizontal scroll
 - Use getElementById for DOM selection — never querySelector with Tailwind classes
 - High contrast: dark bg = light text, light bg = dark text
+- Keep sections visually cohesive but distinct using a controlled palette, subtle borders, shadows, and alternating surfaces.
+- Avoid awkward placement, cramped spacing, unbalanced columns, unreadable text, and random colors.
 - Images: https://picsum.photos/{w}/{h}?random=N only. No fabricated URLs
-- Icons: emoji only. NO SVGs, NO iframes
+- Avoid emojis unless already used intentionally. NO SVGs, NO iframes
 - JS: Only hamburger menu toggle with getElementById. No complex JS
 - Keep the result concise and fast-loading
 - Output ONLY the complete HTML. Nothing else.`
@@ -179,7 +276,7 @@ RULES:
                         content: `Current website code:\n${currentCode}\n\nRequested changes: ${prompt}`
                     }
                 ]
-            });
+            }, { timeout: getRequestTimeout(deadline) });
 
             const result = getCompletionText(response);
             if (isHtmlResponse(result)) {
@@ -190,7 +287,11 @@ RULES:
             console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
         } catch (error) {
             console.error(`Attempt ${attempts} with ${model} failed:`, error);
+            if (isProviderAuthError(error)) {
+                throw providerAuthError();
+            }
             if (attempts === MAX_ATTEMPTS) throw error;
+            assertGenerationDeadline(deadline);
             await wait(1500);
         }
     }
@@ -209,15 +310,28 @@ export const markGenerationJobFailed = async (jobId: string, error: unknown) => 
         return;
     }
 
+    if (job.status === "completed" || job.status === "failed") {
+        return;
+    }
+
     await prisma.$transaction(async (tx) => {
-        await tx.generationJob.update({
-            where: { id: jobId },
+        const failedJob = await tx.generationJob.updateMany({
+            where: {
+                id: jobId,
+                status: {
+                    not: "completed"
+                }
+            },
             data: {
                 status: "failed",
                 error: errorMessage,
                 completedAt: new Date()
             }
         });
+
+        if (failedJob.count === 0) {
+            return;
+        }
 
         await tx.websiteProject.update({
             where: { id: job.projectId },
@@ -244,14 +358,27 @@ export const markGenerationJobFailed = async (jobId: string, error: unknown) => 
                 jobId
             });
         }
-    });
+    }, transactionOptions);
 };
 
 export const runGenerationJob = async (jobId: string) => {
+    const staleCutoff = getStaleGenerationCutoff();
     const claim = await prisma.generationJob.updateMany({
         where: {
             id: jobId,
-            status: "queued"
+            OR: [
+                { status: "queued" },
+                {
+                    status: "running",
+                    OR: [
+                        { startedAt: { lt: staleCutoff } },
+                        {
+                            startedAt: null,
+                            updatedAt: { lt: staleCutoff }
+                        }
+                    ]
+                }
+            ]
         },
         data: {
             status: "running",
@@ -291,33 +418,38 @@ export const runGenerationJob = async (jobId: string) => {
         throw new Error(`Generation job ${jobId} was not found.`);
     }
 
-    await prisma.$transaction(async (tx) => {
-        await tx.websiteProject.update({
-            where: { id: job.projectId },
-            data: {
-                generationStatus: "running",
-                generationError: null
-            }
-        });
+    const deadline = Date.now() + getJobTimeoutMs(job.type);
+
+    await prisma.websiteProject.update({
+        where: { id: job.projectId },
+        data: {
+            generationStatus: "running",
+            generationError: null
+        }
     });
 
     try {
-        const enhancedPrompt = job.type === "initial"
-            ? await enhanceInitialPrompt(job.prompt)
-            : await enhanceRevisionPrompt(job.prompt);
+        const shouldEnhancePrompt = job.type === "initial" || ENABLE_REVISION_PROMPT_ENHANCEMENT;
+        const enhancedPrompt = shouldEnhancePrompt
+            ? job.type === "initial"
+                ? await enhanceInitialPrompt(job.prompt, deadline)
+                : await enhanceRevisionPrompt(job.prompt, deadline)
+            : job.prompt;
 
         await prisma.generationJob.update({
             where: { id: jobId },
             data: { enhancedPrompt }
         });
 
-        await prisma.conversation.create({
-            data: {
-                role: "assistant",
-                content: `I have enhanced your prompt to : "${enhancedPrompt}"`,
-                projectId: job.projectId
-            }
-        });
+        if (shouldEnhancePrompt) {
+            await prisma.conversation.create({
+                data: {
+                    role: "assistant",
+                    content: `I have enhanced your prompt to : "${enhancedPrompt}"`,
+                    projectId: job.projectId
+                }
+            });
+        }
 
         await prisma.conversation.create({
             data: {
@@ -327,9 +459,10 @@ export const runGenerationJob = async (jobId: string) => {
             }
         });
 
+        assertGenerationDeadline(deadline);
         const generatedCode = job.type === "initial"
-            ? await generateInitialWebsiteCode(enhancedPrompt || job.prompt)
-            : await generateRevisionWebsiteCode(job.project.current_code || "", enhancedPrompt || job.prompt);
+            ? await generateInitialWebsiteCode(enhancedPrompt || job.prompt, deadline)
+            : await generateRevisionWebsiteCode(job.project.current_code || "", enhancedPrompt || job.prompt, deadline);
 
         if (!generatedCode) {
             throw new Error("The AI model did not return valid HTML.");
@@ -339,6 +472,22 @@ export const runGenerationJob = async (jobId: string) => {
         const versionDescription = job.type === "initial" ? "Initial version" : "Changes made by user";
 
         await prisma.$transaction(async (tx) => {
+            const completedJob = await tx.generationJob.updateMany({
+                where: {
+                    id: jobId,
+                    status: "running"
+                },
+                data: {
+                    status: "completed",
+                    error: null,
+                    completedAt: new Date()
+                }
+            });
+
+            if (completedJob.count === 0) {
+                throw new Error("Generation job is no longer active.");
+            }
+
             const version = await tx.version.create({
                 data: {
                     code: cleanedCode,
@@ -365,22 +514,55 @@ export const runGenerationJob = async (jobId: string) => {
                     generationError: null
                 }
             });
-
-            await tx.generationJob.update({
-                where: { id: jobId },
-                data: {
-                    status: "completed",
-                    error: null,
-                    completedAt: new Date()
-                }
-            });
-        });
+        }, transactionOptions);
 
         console.log(`Generation job completed: ${jobId}`);
         return { projectId: job.projectId, status: "completed" };
     } catch (error) {
         console.error(`Generation job failed: ${jobId}`, error);
         await markGenerationJobFailed(jobId, error);
-        throw error;
+        return { projectId: job.projectId, status: "failed" };
     }
+};
+
+export const failStaleGenerationForProject = async (userId: string, projectId: string) => {
+    const activeJob = await prisma.generationJob.findFirst({
+        where: {
+            userId,
+            projectId,
+            OR: [
+                { status: "queued" },
+                { status: "running" }
+            ]
+        },
+        orderBy: {
+            createdAt: "desc"
+        },
+        select: {
+            id: true,
+            type: true,
+            status: true,
+            createdAt: true,
+            startedAt: true,
+            updatedAt: true
+        }
+    });
+
+    if (!activeJob) {
+        return;
+    }
+
+    const timeoutMs = getJobTimeoutMs(activeJob.type);
+    const referenceDate = activeJob.status === "running"
+        ? activeJob.startedAt || activeJob.updatedAt
+        : activeJob.createdAt;
+
+    if (Date.now() - referenceDate.getTime() < timeoutMs) {
+        return;
+    }
+
+    await markGenerationJobFailed(
+        activeJob.id,
+        new Error("Generation timed out before it completed. Your credits were restored, so you can try again.")
+    );
 };

@@ -16,7 +16,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 const corsOptions = {
-    origin: process.env.TRUSTED_ORIGINS?.split(",") || [],
+    origin: process.env.TRUSTED_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean) || [],
     credentials: true,
 }
 
@@ -32,7 +32,12 @@ app.use(express.json({limit: '50mb'}));
 app.get('/', (req: Request, res: Response) => {
     res.send('Server is Live!');
 });
-app.use('/api/inngest', serve({ client: inngest, functions: inngestFunctions }));
+
+app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+});
+
+app.use('/api/inngest', serve({ client: inngest, functions: inngestFunctions, streaming: true }));
 app.use('/api/user', userRouter);
 app.use('/api/project', projectRoutes);
 

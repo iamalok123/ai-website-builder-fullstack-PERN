@@ -5,6 +5,7 @@ import prisma from "../lib/prisma.js";
 import { InsufficientCreditsError } from "../services/creditService.js";
 import { createProjectWithGenerationJob } from "../services/projectService.js";
 import { createCreditCheckoutSession, getCreditPlan } from "../services/paymentService.js";
+import { failStaleGenerationForProject } from "../services/generationService.js";
 
 
 // Get User Credits
@@ -68,6 +69,8 @@ export const getUserProject = async (req: Request, res: Response) => {
         }
 
         const projectId = req.params.projectId as string;
+
+        await failStaleGenerationForProject(userId, projectId);
 
         const project = await prisma.websiteProject.findUnique({
             where: {
@@ -147,6 +150,10 @@ export const togglePublish = async (req: Request, res: Response) => {
 
         if (!project) {
             return res.status(404).json({ message: 'Project not found.' });
+        }
+
+        if (project.generationStatus === "queued" || project.generationStatus === "running" || !project.current_code) {
+            return res.status(409).json({ message: 'Please wait until generation is complete before publishing this project.' });
         }
 
         await prisma.websiteProject.update({

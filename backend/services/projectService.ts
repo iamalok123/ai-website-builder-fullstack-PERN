@@ -188,3 +188,106 @@ export const createRevisionGenerationJob = async (userId: string, projectId: str
 
     return result;
 };
+
+export const retryFailedGenerationJob = async (userId: string, projectId: string) => {
+    const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+            where: { id: userId },
+            select: { credits: true }
+        });
+
+        if (!user) {
+            throw new Error("User not found.");
+        }
+
+        if (user.credits < GENERATION_CREDIT_COST) {
+            throw new InsufficientCreditsError();
+        }
+
+        const project = await tx.websiteProject.findUnique({
+            where: { id: projectId, userId },
+            select: {
+                id: true,
+                current_code: true,
+                generationStatus: true
+            }
+        });
+
+        if (!project) {
+            throw new Error("Project not found.");
+        }
+
+        if (project.generationStatus === "queued" || project.generationStatus === "running") {
+            throw new Error("A generation is already in progress for this project.");
+        }
+
+        const failedJob = await tx.generationJob.findFirst({
+            where: {
+                userId,
+                projectId,
+                status: "failed"
+            },
+            orderBy: {
+                createdAt: "desc"
+            },
+            select: {
+                type: true,
+                prompt: true
+            }
+        });
+
+        if (!failedJob) {
+            throw new Error("There is no failed generation to retry.");
+        }
+
+        if (failedJob.type === "revision" && !project.current_code) {
+            throw new Error("Please wait until the first generation is complete before retrying a revision.");
+        }
+
+        const job = await tx.generationJob.create({
+            data: {
+                type: failedJob.type,
+                status: "queued",
+                prompt: failedJob.prompt,
+                userId,
+                projectId
+            },
+            select: { id: true }
+        });
+
+        await tx.websiteProject.update({
+            where: { id: projectId },
+            data: {
+                generationStatus: "queued",
+                generationError: null
+            }
+        });
+
+        await tx.conversation.create({
+            data: {
+                role: "user",
+                content: failedJob.prompt,
+                projectId
+            }
+        });
+
+        await debitCredits(tx, {
+            userId,
+            amount: GENERATION_CREDIT_COST,
+            reason: "generation retry",
+            projectId,
+            jobId: job.id
+        });
+
+        return { projectId, jobId: job.id };
+    });
+
+    try {
+        await enqueueGenerationJob(result.jobId);
+    } catch (error) {
+        await markGenerationJobFailed(result.jobId, error);
+        throw new Error("Unable to queue website generation retry. Your credits were restored.");
+    }
+
+    return result;
+};

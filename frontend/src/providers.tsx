@@ -11,6 +11,10 @@ const AuthLink = ({ href, ...props }: AuthLinkProps) => (
   <NavLink {...props} to={href} />
 );
 
+const frontendBaseURL = (
+  import.meta.env.VITE_APP_URL || window.location.origin
+).replace(/\/$/, "");
+
 export function Providers({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
 
@@ -19,6 +23,8 @@ export function Providers({ children }: { children: ReactNode }) {
         authClient={authClient} 
         navigate={navigate}
         Link={AuthLink}
+        baseURL={frontendBaseURL}
+        redirectTo="/"
         social={{ providers: ["google"] }}
       >
           {children}

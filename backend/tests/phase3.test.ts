@@ -25,6 +25,27 @@ test("public preview sanitizer removes untrusted executable code", () => {
     assert.doesNotMatch(sanitized, /javascript:/);
 });
 
+test("sanitizer replaces generated local image paths and removes embeds", () => {
+    const sanitized = sanitizeForPublicPreview(`
+        <!DOCTYPE html>
+        <html>
+            <head></head>
+            <body>
+                <img src="/images/hero.jpg">
+                <iframe src="https://example.com/embed"></iframe>
+                <object data="bad.swf"></object>
+                <embed src="bad.swf">
+            </body>
+        </html>
+    `);
+
+    assert.match(sanitized, /https:\/\/picsum\.photos\/800\/600\?random=/);
+    assert.doesNotMatch(sanitized, /src="\/images\/hero\.jpg"/);
+    assert.doesNotMatch(sanitized, /<iframe/i);
+    assert.doesNotMatch(sanitized, /<object/i);
+    assert.doesNotMatch(sanitized, /<embed/i);
+});
+
 test("project and revision schemas reject blank prompts", () => {
     assert.equal(createProjectBodySchema.safeParse({ initial_prompt: "Build a portfolio" }).success, true);
     assert.equal(createProjectBodySchema.safeParse({ initial_prompt: " " }).success, false);

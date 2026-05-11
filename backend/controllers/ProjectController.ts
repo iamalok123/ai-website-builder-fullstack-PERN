@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import { sanitizeAndFixHtml, sanitizeForPublicPreview } from "../lib/sanitizeHtml.js";
 import { InsufficientCreditsError } from "../services/creditService.js";
-import { createRevisionGenerationJob } from "../services/projectService.js";
+import { createRevisionGenerationJob, retryFailedGenerationJob } from "../services/projectService.js";
+import { failStaleGenerationForProject } from "../services/generationService.js";
 
 
 
@@ -46,6 +47,41 @@ export const makeRevision = async (req: Request, res: Response) => {
     }
 }
 
+export const retryGeneration = async (req: Request, res: Response) => {
+    const userId = req.userId;
+
+    try {
+        const projectId = req.params.projectId as string;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized User.' });
+        }
+
+        const job = await retryFailedGenerationJob(userId, projectId);
+        console.log('✅ retryGeneration queued - projectId:', projectId, 'jobId:', job.jobId);
+        return res.status(202).json({ message: "Generation retry queued successfully.", jobId: job.jobId, generationStatus: "queued" });
+    } catch (error: any) {
+        if (error instanceof InsufficientCreditsError) {
+            return res.status(403).json({ message: 'Add credits to retry generation.' });
+        }
+
+        if (error.message === "Project not found.") {
+            return res.status(404).json({ message: error.message });
+        }
+
+        if (
+            error.message === "A generation is already in progress for this project." ||
+            error.message === "There is no failed generation to retry." ||
+            error.message === "Please wait until the first generation is complete before retrying a revision."
+        ) {
+            return res.status(409).json({ message: error.message });
+        }
+
+        console.error(error.code || error.message);
+        return res.status(500).json({ message: error.message });
+    }
+}
+
 
 
 
@@ -70,12 +106,17 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
                 userId
             },
             select: {
+                generationStatus: true,
                 versions: true
             }
         })
 
         if (!project) {
             return res.status(404).json({ message: 'Project not found.' });
+        }
+
+        if (project.generationStatus === "queued" || project.generationStatus === "running") {
+            return res.status(409).json({ message: 'Please wait until generation is complete before rolling back.' });
         }
 
         const version = project.versions.find((version) => version.id === versionId);
@@ -150,6 +191,8 @@ export const getProjectPreview = async (req: Request, res: Response) => {
             return res.status(401).json({ message: 'Unauthorized User.' });
         }
 
+        await failStaleGenerationForProject(userId, projectId);
+
         const project = await prisma.websiteProject.findFirst({
             where: {
                 id: projectId,
@@ -157,12 +200,21 @@ export const getProjectPreview = async (req: Request, res: Response) => {
             },
             select: {
                 versions: true,
-                current_code: true
+                current_code: true,
+                generationStatus: true,
+                generationError: true
             }
         })
 
         if (!project) {
             return res.status(404).json({ message: 'Project not found.' });
+        }
+
+        if (project.generationStatus === "queued" || project.generationStatus === "running") {
+            return res.status(409).json({
+                message: 'Website generation is still in progress. Preview will be available after generation completes.',
+                generationStatus: project.generationStatus
+            });
         }
 
         console.log('✅ getProjectPreview completed - projectId:', projectId);
@@ -271,6 +323,14 @@ export const saveProjectCode = async (req: Request, res: Response) => {
 
         if (!project) {
             return res.status(404).json({ message: 'Project not found.' });
+        }
+
+        if (project.generationStatus === "queued" || project.generationStatus === "running") {
+            return res.status(409).json({ message: 'Please wait until generation is complete before saving this project.' });
+        }
+
+        if (!project.current_code) {
+            return res.status(409).json({ message: 'There is no generated website to save yet.' });
         }
 
         const cleanedCode = sanitizeAndFixHtml(code);

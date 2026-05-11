@@ -13,7 +13,11 @@ app.get('/', (_req: Request, res: Response) => {
     res.send('Worker is Live!');
 });
 
-app.use('/api/inngest', serve({ client: inngest, functions: inngestFunctions }));
+app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+});
+
+app.use('/api/inngest', serve({ client: inngest, functions: inngestFunctions, streaming: true }));
 
 app.listen(port, () => {
     console.log(`Worker is running at http://localhost:${port}`);

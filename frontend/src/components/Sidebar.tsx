@@ -35,6 +35,11 @@ const Sidebar = ({ isMenuOpen, project, setProject, isGenerating, setIsGeneratin
     }
 
     const handleRollback = async (versionId: string) => {
+        if (isGenerating) {
+            toast.error('Please wait until generation is complete before rolling back.');
+            return;
+        }
+
         try {
             const confirm = window.confirm('Are you sure you want to rollback to this version?');
             if (!confirm) return;
@@ -137,13 +142,29 @@ const Sidebar = ({ isMenuOpen, project, setProject, isGenerating, setIsGeneratin
                                                 project?.current_version_index === ver.id ? (
                                                     <button className="bg-gray-700 hover:bg-gray-600 text-xs px-3 py-1 rounded-md">Current version</button>
                                                 ) : (
-                                                    <button onClick={() => handleRollback(ver.id)} className="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-3 py-1 rounded-md">Roll back to this version</button>
+                                                    <button
+                                                        disabled={isGenerating}
+                                                        onClick={() => handleRollback(ver.id)}
+                                                        className={`bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-3 py-1 rounded-md ${isGenerating ? 'cursor-not-allowed opacity-50 hover:bg-indigo-500' : ''}`}
+                                                    >
+                                                        Roll back to this version
+                                                    </button>
                                                 )
                                             }
 
-                                            <Link target="_blank" to={`/preview/${project?.id}/${ver.id}`}>
-                                                <EyeIcon className="size-7 p-1 bg-gray-700 hover:bg-indigo-500 rounded transition-colors" />
-                                            </Link>
+                                            {isGenerating ? (
+                                                <button
+                                                    disabled
+                                                    className="cursor-not-allowed opacity-50"
+                                                    title="Preview will be available after generation completes"
+                                                >
+                                                    <EyeIcon className="size-7 p-1 bg-gray-700 rounded transition-colors" />
+                                                </button>
+                                            ) : (
+                                                <Link target="_blank" to={`/preview/${project?.id}/${ver.id}`}>
+                                                    <EyeIcon className="size-7 p-1 bg-gray-700 hover:bg-indigo-500 rounded transition-colors" />
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
                                 )

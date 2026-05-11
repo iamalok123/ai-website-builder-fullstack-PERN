@@ -3,6 +3,7 @@ import type { Project } from "../types";
 import { iframeScript } from "../assets/assets";
 import EditorPanel from "./EditorPanel";
 import LoaderSteps from "./LoaderSteps";
+import { Loader2Icon, RefreshCcwIcon } from "lucide-react";
 
 type SelectedElement = {
     tagName: string;
@@ -22,13 +23,15 @@ export interface ProjectPreviewProps {
     isGenerating: boolean;
     device?: 'phone' | 'tablet' | 'desktop';
     showEditorPanel?: boolean;
+    onRetryGeneration?: () => void;
+    isRetrying?: boolean;
 }
 
 export interface ProjectPreviewRef {
     getCode: () => string | undefined;
 }
 
-const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ project, isGenerating, device = 'desktop', showEditorPanel = true }, ref) => {
+const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ project, isGenerating, device = 'desktop', showEditorPanel = true, onRetryGeneration, isRetrying = false }, ref) => {
 
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
@@ -147,6 +150,20 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
                         <p className="mt-2 text-sm text-red-200">
                             {project.generationError || "The website could not be generated. Your credits were restored, so you can try again."}
                         </p>
+                        {onRetryGeneration && (
+                            <button
+                                disabled={isRetrying}
+                                onClick={onRetryGeneration}
+                                className="mx-auto mt-4 flex items-center justify-center gap-2 rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                                {isRetrying ? (
+                                    <Loader2Icon className="size-4 animate-spin" />
+                                ) : (
+                                    <RefreshCcwIcon className="size-4" />
+                                )}
+                                Retry generation
+                            </button>
+                        )}
                     </div>
                 </div>
             ) : isGenerating && (

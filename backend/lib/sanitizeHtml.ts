@@ -4,6 +4,7 @@
  */
 export const sanitizeAndFixHtml = (rawCode: string): string => {
     let code = rawCode;
+    const fallbackImageUrl = "https://picsum.photos/800/600?random=101";
 
     // 1. Strip markdown code fences and leading/trailing whitespace
     code = code.replace(/```[a-z]*\n?/gi, '').replace(/```\s*$/g, '').trim();
@@ -95,6 +96,15 @@ pre,code{white-space:pre-wrap;word-wrap:break-word;max-width:100%}
         }
     );
 
+    // 14b. Replace local/relative generated image paths that will not exist after export/publish.
+    code = code.replace(
+        /src=["']((?!https?:\/\/|data:|blob:|#)[^"']+\.(?:jpg|jpeg|png|gif|webp|avif|svg)(?:\?[^"']*)?)["']/gi,
+        () => {
+            const randomId = Math.floor(Math.random() * 1000);
+            return `src="https://picsum.photos/800/600?random=${randomId}"`;
+        }
+    );
+
     // 15. Ensure all images have loading="lazy" for performance
     code = code.replace(/<img(?![^>]*loading)[^>]*>/gi, (match) =>
         match.replace('<img', '<img loading="lazy"'));
@@ -102,6 +112,14 @@ pre,code{white-space:pre-wrap;word-wrap:break-word;max-width:100%}
     // 16. Add alt="" to images missing alt attribute for accessibility
     code = code.replace(/<img(?![^>]*alt)[^>]*>/gi, (match) =>
         match.replace('<img', '<img alt="image"'));
+
+    // 16b. Add resilient image attributes for generated previews/downloads.
+    code = code.replace(/<img(?![^>]*decoding=)[^>]*>/gi, (match) =>
+        match.replace('<img', '<img decoding="async"'));
+    code = code.replace(/<img(?![^>]*referrerpolicy=)[^>]*>/gi, (match) =>
+        match.replace('<img', '<img referrerpolicy="no-referrer"'));
+    code = code.replace(/<img(?![^>]*onerror=)[^>]*>/gi, (match) =>
+        match.replace('<img', `<img onerror="this.onerror=null;this.src='${fallbackImageUrl}'"`));
 
     // 17. Remove problematic SVG elements that break on some mobile browsers
     // Only remove complex SVGs (with paths/polygons), keep simple ones
@@ -125,8 +143,10 @@ ${scriptContent.trim()}
 <\/script>`;
     });
 
-    // 19. Remove iframes (often break on mobile and cause security issues)
+    // 19. Remove embedded documents/media that often break on mobile and create security issues.
     code = code.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    code = code.replace(/<(object|embed)[^>]*>[\s\S]*?<\/\1>/gi, '');
+    code = code.replace(/<(object|embed)\b[^>]*\/?>/gi, '');
 
     // 20. Ensure TinyMCE CDN is included if TinyMCE is used
     if (code.includes('tinymce') && !code.includes('cdn.tiny.cloud')) {
