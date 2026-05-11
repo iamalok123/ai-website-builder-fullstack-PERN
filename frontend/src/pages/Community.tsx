@@ -5,26 +5,35 @@ import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import api from "@/configs/axios";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/api-error";
 
 const Community = () => {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
   const navigate = useNavigate();
 
-  const fetchProjects = async () => {
-    try {
-      const { data } = await api.get('/api/project/published');
-      setProjects(data.projects);
-      setLoading(false);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || error.message);
-      console.log(error);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchProjects();
+    let isMounted = true;
+
+    api.get<{ projects: Project[] }>('/api/project/published')
+      .then(({ data }) => {
+        if (isMounted) {
+          setProjects(data.projects);
+        }
+      })
+      .catch((error) => {
+        toast.error(getErrorMessage(error));
+        console.log(error);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

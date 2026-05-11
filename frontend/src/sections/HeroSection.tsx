@@ -5,11 +5,59 @@ import { authClient } from "@/lib/auth-client";
 import { useNavigate } from "react-router-dom";
 import api from "@/configs/axios";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/api-error";
 
 interface Prompt {
     label: string;
     prompt: string;
 }
+
+const placeholders = [
+    "portfolio website...",
+    "e-commerce store...",
+    "business landing page...",
+    "personal blog...",
+    "startup website...",
+];
+
+const prompts: Prompt[] = [
+    {
+        label: "Portfolio Website",
+        prompt: "Create a modern portfolio website to showcase my skills, projects, experience, and personal brand professionally",
+    },
+    {
+        label: "E-commerce Website",
+        prompt: "Build a fast, secure e-commerce website with product listings, cart system, payments, and admin dashboard",
+    },
+    {
+        label: "Blog",
+        prompt: "Create a clean, SEO-optimized blog website for writing articles, managing content, and growing audience online",
+    },
+    {
+        label: "Landing Page",
+        prompt: "Design a high-conversion landing page with strong hero section, CTA buttons, and lead capture form",
+    },
+    {
+        label: "Resume Website",
+        prompt: "Generate a professional resume website with skills, experience, education, projects, and downloadable CV section",
+    },
+    {
+        label: "Personal Website",
+        prompt: "Create a personal branding website with about section, social links, blogs, and contact form",
+    },
+    {
+        label: "Business Website",
+        prompt: "Build a professional business website with services, testimonials, pricing section, and customer inquiry form",
+    },
+    {
+        label: "Marketing Website",
+        prompt: "Create a marketing-focused website optimized for conversions, analytics tracking, funnels, and campaign integrations",
+    },
+    {
+        label: "Educational Website",
+        prompt: "Build an educational website with courses, student dashboard, lesson pages, progress tracking, and quizzes",
+    },
+];
 
 export default function HeroSection() {
     const [selected, setSelected] = useState<string | null>(null);
@@ -26,7 +74,6 @@ export default function HeroSection() {
 
     const onSubmitHandler = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log(input);
 
         try {
             if (!session?.user) {
@@ -43,83 +90,36 @@ export default function HeroSection() {
             }
             toast.success('Project created! Generating your website...');
             navigate(`/projects/${data.projectId}`);
-        } catch (error: any) {
+        } catch (error) {
             console.log(error);
             setLoading(false);
-            toast.error(error.response?.data?.message || error.message);
+            toast.error(getErrorMessage(error));
         }
     }
-    const placeholders = [
-        "portfolio website...",
-        "e-commerce store...",
-        "business landing page...",
-        "personal blog...",
-        "startup website...",
-    ];
-
-
-    const prompts: Prompt[] = [
-        {
-            label: "Portfolio Website",
-            prompt: "Create a modern portfolio website to showcase my skills, projects, experience, and personal brand professionally",
-        },
-        {
-            label: "E-commerce Website",
-            prompt: "Build a fast, secure e-commerce website with product listings, cart system, payments, and admin dashboard",
-        },
-        {
-            label: "Blog",
-            prompt: "Create a clean, SEO-optimized blog website for writing articles, managing content, and growing audience online",
-        },
-        {
-            label: "Landing Page",
-            prompt: "Design a high-conversion landing page with strong hero section, CTA buttons, and lead capture form",
-        },
-        {
-            label: "Resume Website",
-            prompt: "Generate a professional resume website with skills, experience, education, projects, and downloadable CV section",
-        },
-        {
-            label: "Personal Website",
-            prompt: "Create a personal branding website with about section, social links, blogs, and contact form",
-        },
-        {
-            label: "Business Website",
-            prompt: "Build a professional business website with services, testimonials, pricing section, and customer inquiry form",
-        },
-        {
-            label: "Marketing Website",
-            prompt: "Create a marketing-focused website optimized for conversions, analytics tracking, funnels, and campaign integrations",
-        },
-        {
-            label: "Educational Website",
-            prompt: "Build an educational website with courses, student dashboard, lesson pages, progress tracking, and quizzes",
-        },
-    ];
-
 
     useEffect(() => {
         if (input) return;
 
         const currentWord = placeholders[textIndex];
+        const delay = !deleting && charIndex === currentWord.length ? 2000 : 50;
 
-        if (!deleting && charIndex === currentWord.length) {
-            setTimeout(() => setDeleting(true), 2000);
-            return;
-        }
+        const timeout = window.setTimeout(() => {
+            if (!deleting && charIndex === currentWord.length) {
+                setDeleting(true);
+                return;
+            }
 
-        if (deleting && charIndex === 0) {
-            setDeleting(false);
-            setTextIndex((prev) => (prev + 1) % placeholders.length);
-            return;
-        }
+            if (deleting && charIndex === 0) {
+                setDeleting(false);
+                setTextIndex((prev) => (prev + 1) % placeholders.length);
+                return;
+            }
 
-        const timeout = setTimeout(() => {
             setCharIndex((prev) => prev + (deleting ? -1 : 1));
-        }, 50);
+        }, delay);
 
         return () => clearTimeout(timeout);
-    }, [charIndex, deleting, textIndex, prompt]);
+    }, [charIndex, deleting, input, textIndex]);
 
     const animatedPlaceholder = placeholders[textIndex].substring(0, charIndex);
 

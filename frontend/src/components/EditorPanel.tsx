@@ -2,21 +2,29 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface EditorPanelProps {
-    selectedElement: {
-        tagName: string;
-        className: string;
-        text: string;
-        styles: {
-            padding: string;
-            margin: string;
-            backgroundColor: string;
-            color: string;
-            fontSize: string;
-        }
-    } | null;
-    onUpdate: (updates: any) => void;
+    selectedElement: EditableElement | null;
+    onUpdate: (updates: ElementUpdate) => void;
     onClose: () => void;
 }
+
+interface EditableElement {
+    tagName: string;
+    className: string;
+    text: string;
+    styles: EditableElementStyles;
+}
+
+interface EditableElementStyles {
+    padding: string;
+    margin: string;
+    backgroundColor: string;
+    color: string;
+    fontSize: string;
+}
+
+type ElementUpdate =
+    | Partial<Pick<EditableElement, 'className' | 'text'>>
+    | { styles: Partial<EditableElementStyles> };
 
 const EditorPanel = ({ selectedElement, onUpdate, onClose }: EditorPanelProps) => {
     const [values, setValues] = useState(selectedElement);
@@ -29,17 +37,14 @@ const EditorPanel = ({ selectedElement, onUpdate, onClose }: EditorPanelProps) =
         return null;
     }
 
-    const handleChange = (field: string, value: string) => {
+    const handleChange = (field: 'className' | 'text', value: string) => {
         if (!values) return;
         const newValues = { ...values, [field]: value };
-        if (field in values.styles) {
-            newValues.styles = { ...values.styles, [field]: value };
-        }
         setValues(newValues);
         onUpdate({ [field]: value });
     };
 
-    const handleStyleChange = (styleName: string, value: string) => {
+    const handleStyleChange = (styleName: keyof EditableElementStyles, value: string) => {
         if (!values) return;
         const newStyles = { ...values.styles, [styleName]: value };
         setValues({ ...values, styles: newStyles });

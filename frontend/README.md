@@ -1,73 +1,66 @@
-# React + TypeScript + Vite
+# Zephyr Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19, Vite, TypeScript, Tailwind CSS 4 frontend for the Zephyr AI Website Builder.
 
-Currently, two official plugins are available:
+## Runtime
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The app talks to the backend through the shared Axios client in `src/configs/axios.ts`.
 
-## React Compiler
+Required local `.env` value:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_BASEURL="http://localhost:3000"
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Optional value used by some auth/deployment setups:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_APP_URL="http://localhost:5173"
 ```
+
+## Routes
+
+- `/`: landing page and AI prompt entry.
+- `/pricing`: Stripe credit package UI.
+- `/projects`: authenticated project dashboard.
+- `/projects/:projectId`: builder/editor workspace.
+- `/preview/:projectId`: authenticated preview for current code.
+- `/preview/:projectId/:versionId`: authenticated preview for a saved version.
+- `/view/:projectId`: public published project view.
+- `/community`: public published project gallery.
+- `/auth/:pathname`: Better Auth UI.
+- `/account/settings`: account settings.
+- `/loading`: post-payment redirect screen.
+
+## Local Development
+
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+Run the backend separately from `../backend`.
+
+## Verification
+
+Last verified locally on May 11, 2026:
+
+```bash
+npm run lint
+npx tsc -b --noEmit
+npm run build
+```
+
+The production build succeeds. Vite currently warns that the main JavaScript bundle is larger than 500 kB after minification; this is a performance warning, not a failed build.
+
+## Notes
+
+- API calls use `withCredentials: true`, so backend CORS and Better Auth trusted origins must include the frontend origin.
+- Public and preview pages render generated HTML inside sandboxed iframes through `ProjectPreview`.
+- The builder/editor flow depends on authenticated backend APIs and cannot be fully exercised without a configured backend, database, AI provider, and Inngest/Stripe services for those flows.

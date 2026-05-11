@@ -4,7 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import { UserButton } from "@daveyplate/better-auth-ui";
 import api from "@/configs/axios";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
+import { getErrorMessage } from "@/lib/api-error";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,26 +13,25 @@ const Navbar = () => {
   const location = useLocation();
   const { data: session } = authClient.useSession();
 
-  const getCredits = async () => {
-    try {
-      const { data } = await api.get('/api/user/credits');
-      setCredits(data.credits);
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.message || error.message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('An unexpected error occurred');
-      }
-      console.log(error);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
     if (session?.user) {
-      getCredits();
+      api.get('/api/user/credits')
+        .then(({ data }) => {
+          if (isMounted) {
+            setCredits(data.credits);
+          }
+        })
+        .catch((error) => {
+          toast.error(getErrorMessage(error));
+          console.log(error);
+        });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [session?.user]);
 
   // Nav links configuration

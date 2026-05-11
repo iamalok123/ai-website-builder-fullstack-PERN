@@ -5,26 +5,37 @@ import ProjectPreview from "../components/ProjectPreview";
 import type { Project } from "../types";
 import api from "@/configs/axios";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/api-error";
 
 const View = () => {
     const { projectId } = useParams();
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(true);
 
-    const fetchCode = async () => {
-        try {
-            const { data } = await api.get(`/api/project/published/${projectId}`);
-            setCode(data.code);
-            setLoading(false);
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || error.message);
-            setLoading(false);
-        }
-    }
-
     useEffect(() => {
-        fetchCode();
-    }, [])
+        let isMounted = true;
+
+        if (projectId) {
+            api.get<{ code: string }>(`/api/project/published/${projectId}`)
+                .then(({ data }) => {
+                    if (isMounted) {
+                        setCode(data.code);
+                    }
+                })
+                .catch((error) => {
+                    toast.error(getErrorMessage(error));
+                })
+                .finally(() => {
+                    if (isMounted) {
+                        setLoading(false);
+                    }
+                });
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [projectId])
 
     if (loading) {
         return (

@@ -1,11 +1,12 @@
 import { Loader2Icon, PlusIcon, TrashIcon } from "lucide-react";
 import type { Project } from "../types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import api from "@/configs/axios";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
+import { getErrorMessage } from "@/lib/api-error";
 
 const MyProjects = () => {
     const { data: session, isPending } = authClient.useSession();
@@ -13,16 +14,16 @@ const MyProjects = () => {
     const [projects, setProjects] = useState<Project[]>([]);
     const navigate = useNavigate();
 
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
         try {
-            const { data } = await api.get('/api/user/projects');
+            const { data } = await api.get<{ projects: Project[] }>('/api/user/projects');
             setProjects(data.projects);
-            setLoading(false);
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || error.message);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     const deleteProject = async (projectId: string) => {
         try {
@@ -31,8 +32,8 @@ const MyProjects = () => {
             const { data } = await api.delete(`/api/project/${projectId}`);
             toast.success(data.message);
             fetchProjects();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || error.message);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
         }
     };
 
@@ -43,7 +44,7 @@ const MyProjects = () => {
             navigate('/');
             toast.error('Please login to view your projects');
         }
-    }, [session?.user]);
+    }, [fetchProjects, isPending, navigate, session?.user]);
 
     return (
         <>

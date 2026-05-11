@@ -291,6 +291,21 @@ Stripe webhook uses raw request body and must remain registered before `express.
 
 ## Verification
 
+Last verified locally on May 11, 2026:
+
+```bash
+cd backend
+npm test
+npx prisma validate
+
+cd ../frontend
+npm run lint
+npx tsc -b --noEmit
+npm run build
+```
+
+The frontend production build currently succeeds and reports a Vite chunk-size warning for the main JavaScript bundle. This is not a build failure; consider route-level code splitting as the app grows.
+
 Backend:
 
 ```bash
@@ -303,16 +318,12 @@ Frontend:
 
 ```bash
 cd frontend
+npm run lint
 npx tsc -b --noEmit
 npm run build
 ```
 
-Targeted lint for recently changed builder files:
-
-```bash
-cd frontend
-npx eslint src/pages/Projects.tsx src/components/ProjectPreview.tsx src/components/Sidebar.tsx src/types/index.ts
-```
+Local browser smoke test: the built frontend was served from `frontend/dist` and the landing page rendered with no browser console errors.
 
 ## Deployment Options
 

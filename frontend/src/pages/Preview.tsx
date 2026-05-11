@@ -5,35 +5,48 @@ import ProjectPreview from "../components/ProjectPreview";
 import type { Project, Version } from "../types";
 import api from "@/configs/axios";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/api-error";
+
+interface PreviewResponse {
+    project: {
+        current_code: string;
+        versions: Version[];
+    };
+}
 
 const Preview = () => {
     const { projectId, versionId } = useParams();
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(true);
 
-    const fetchCode = async () => {
-        try {
-            const { data } = await api.get(`/api/project/preview/${projectId}`);
-            setCode(data.project.current_code);
-            if (versionId) {
-                data.project.versions.forEach((version: Version) => {
-                    if (version.id === versionId) {
-                        setCode(version.code);
+    useEffect(() => {
+        let isMounted = true;
+
+        if (projectId) {
+            api.get<PreviewResponse>(`/api/project/preview/${projectId}`)
+                .then(({ data }) => {
+                    if (!isMounted) return;
+
+                    const selectedVersion = versionId
+                        ? data.project.versions.find((version) => version.id === versionId)
+                        : undefined;
+
+                    setCode(selectedVersion?.code || data.project.current_code);
+                })
+                .catch((error) => {
+                    toast.error(getErrorMessage(error));
+                })
+                .finally(() => {
+                    if (isMounted) {
+                        setLoading(false);
                     }
                 });
-            }
-            setLoading(false);
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || error.message);
-            setLoading(false);
         }
-    }
 
-    useEffect(() => {
-        if (projectId) {
-            fetchCode();
-        }
-    }, [projectId])
+        return () => {
+            isMounted = false;
+        };
+    }, [projectId, versionId])
 
     if (loading) {
         return (

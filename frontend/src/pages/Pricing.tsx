@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { appPlans } from "../assets/assets";
 import Footer from "../components/Footer";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import api from "@/configs/axios";
+import { getErrorMessage } from "@/lib/api-error";
 
-interface plan {
+interface Plan {
     id: string;
     name: string;
     price: string;
@@ -17,21 +17,21 @@ interface plan {
 
 const Pricing = () => {
     const { data: session } = authClient.useSession();
-    const [plans] = useState<plan[]>(appPlans);
+    const plans = appPlans as Plan[];
 
     const handlePurchase = async (planId: string) => {
         try {
             if (!session?.user) {
                 return toast("Please log in to purchase credits")
             }
-            const { data } = await api.post("/api/user/purchase-credits", {
+            const { data } = await api.post<{ payment_link: string }>("/api/user/purchase-credits", {
                 planId,
             })
-            window.location.href = data.payment_link;
+            window.location.assign(data.payment_link);
 
 
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || error.message);
+        } catch (error) {
+            toast.error(getErrorMessage(error));
             console.log(error);
         }
     }
