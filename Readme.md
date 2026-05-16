@@ -133,6 +133,7 @@ INNGEST_SERVE_PATH="/api/inngest"
 ```
 
 Keep `ENABLE_INLINE_GENERATION_FALLBACK` unset or `false` in production.
+Keep `INNGEST_DEV` unset or `0` in production; use `INNGEST_DEV=1` only with the local Inngest Dev Server.
 
 ### Frontend `frontend/.env`
 
@@ -683,6 +684,7 @@ Frontend:
 
 ```env
 VITE_BASEURL="https://your-backend-domain.com"
+VITE_APP_URL="https://your-frontend-domain.com"
 ```
 
 ## Commit Message
