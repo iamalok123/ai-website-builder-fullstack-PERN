@@ -16,24 +16,24 @@ Browser / Mobile Browser
   v
 Frontend
   |
-  | VITE_BASEURL=https://api.yourdomain.com
+  | VITE_BASEURL=https://your-backend.onrender.com
   v
-EC2 Backend behind Nginx HTTPS
+Render Web Service
   |-- Better Auth sessions
   |-- Prisma + Neon PostgreSQL
   |-- Stripe Checkout and webhook
   |-- Inngest durable generation endpoint
-  |-- Optional dedicated worker process for /api/inngest
   v
 Neon / OpenRouter / Stripe / Inngest
 ```
 
-Recommended production split:
+Current production split:
 
 - Vercel serves only the frontend.
-- EC2 serves the Express API.
-- Inngest Cloud calls the EC2 `/api/inngest` endpoint.
-- Stripe and Google OAuth callbacks also point to the EC2 backend domain.
+- Render serves the Express backend API.
+- Inngest Cloud calls the Render `/api/inngest` endpoint.
+- Stripe and Google OAuth callbacks point to the Render backend domain.
+- Neon remains the hosted PostgreSQL database.
 
 ## Key Production Behaviors
 
@@ -50,6 +50,26 @@ Recommended production split:
 - Generated and manually saved HTML creates immutable `Version` snapshots.
 - Public preview responses are selected-field responses and use stricter HTML sanitization.
 - The frontend polls real generation status instead of guessing only from `current_code`.
+- The landing page and navbar use the same dark glass, lime, and teal visual system.
+- The home prompt composer is responsive and remains connected to the same authenticated project-generation flow.
+
+## Current Production Readiness Snapshot
+
+Last checked locally on May 20, 2026:
+
+- Frontend lint passes.
+- Frontend production build passes.
+- Backend TypeScript build and test suite pass.
+- Prisma schema validation passes.
+- Frontend production dependency audit reports `0 vulnerabilities`.
+- Backend production dependency audit has no high-severity failures. A remaining moderate Prisma dev-tooling advisory exists in a transitive `@prisma/dev` dependency; `npm audit fix --force` would install a breaking Prisma version, so it is intentionally not applied.
+- Root, frontend, and backend `.env` files are ignored by git. The root `credentials.md` file is also ignored; keep real keys out of committed files.
+
+Production dependency notes from this pass:
+
+- Frontend `better-auth` and `@better-auth/passkey` are pinned to the patched `^1.6.11` range.
+- Backend `better-auth` is pinned to the patched `^1.6.11` range.
+- Prisma remains pinned to `7.8.0` to avoid unsafe downgrade/breaking changes.
 
 ## Tech Stack
 
@@ -128,7 +148,7 @@ For production with Inngest Cloud also set:
 ```env
 INNGEST_EVENT_KEY="..."
 INNGEST_SIGNING_KEY="..."
-INNGEST_SERVE_ORIGIN="https://api.yourdomain.com"
+INNGEST_SERVE_ORIGIN="https://your-backend.onrender.com"
 INNGEST_SERVE_PATH="/api/inngest"
 ```
 
@@ -143,6 +163,15 @@ VITE_APP_URL="http://localhost:5173"
 ```
 
 `VITE_BASEURL` is the important runtime value currently used by the frontend.
+
+For production:
+
+```env
+VITE_BASEURL="https://your-backend.onrender.com"
+VITE_APP_URL="https://your-frontend.vercel.app"
+```
+
+Vite embeds frontend environment variables during build. If you change `VITE_BASEURL` or `VITE_APP_URL` in Vercel, redeploy the frontend.
 
 ## Neon And Prisma
 
@@ -308,15 +337,17 @@ If generation fails immediately with `AI provider authentication failed` or Open
 
 It is normal to see repeated `getUserProject completed` logs while the frontend polls generation status.
 
-## Vercel Frontend + EC2 Backend Production Prep
+## Vercel Frontend + Render Backend Production Prep
 
-The production deployment plan and local pre-deployment checklist are documented in:
+This repository is currently prepared for:
 
-```text
-docs/vercel-frontend-ec2-backend-production-plan.md
-```
+- Frontend: Vercel static Vite app from the `frontend` directory.
+- Backend: Render Web Service from the `backend` directory.
+- Database: Neon PostgreSQL.
+- Jobs: Inngest Cloud calling the backend at `/api/inngest`.
+- Payments: Stripe calling the backend at `/api/stripe`.
 
-For EC2 health checks, the backend exposes:
+For Render health checks, the backend exposes:
 
 ```text
 GET /health
@@ -405,7 +436,7 @@ Stripe webhook uses raw request body and must remain registered before `express.
 
 ## Verification
 
-Last verified locally on May 11, 2026:
+Last verified locally on May 20, 2026:
 
 ```bash
 cd backend
@@ -439,50 +470,72 @@ npm run build
 
 Local browser smoke test: the built frontend was served from `frontend/dist` and the landing page rendered with no browser console errors.
 
-## Deployment: Vercel Frontend + EC2 Backend
+Before pushing to production GitHub, run this final check set:
+
+```bash
+cd backend
+npm test
+npx prisma validate
+npm audit --omit=dev --audit-level=high
+
+cd ../frontend
+npm run lint
+npm run build
+npm audit --omit=dev --audit-level=high
+```
+
+Expected current audit result:
+
+- Frontend: `0 vulnerabilities`.
+- Backend: no high-severity production audit failures. Moderate Prisma dev-tooling advisory may remain unless Prisma releases a compatible patched line.
+
+## Deployment: Vercel Frontend + Render Backend
 
 ### 1. Prepare Production Domains
 
-Recommended:
+Current recommended setup:
 
 ```text
-Frontend: https://app.yourdomain.com
-Backend:  https://api.yourdomain.com
-Inngest:  https://api.yourdomain.com/api/inngest
-Stripe:   https://api.yourdomain.com/api/stripe
-Google:   https://api.yourdomain.com/api/auth/callback/google
-Health:   https://api.yourdomain.com/health
+Frontend: https://your-frontend.vercel.app
+Backend:  https://your-backend.onrender.com
+Inngest:  https://your-backend.onrender.com/api/inngest
+Stripe:   https://your-backend.onrender.com/api/stripe
+Google:   https://your-backend.onrender.com/api/auth/callback/google
+Health:   https://your-backend.onrender.com/health
 ```
 
-You can deploy first with the Vercel preview domain and EC2 public DNS, but custom HTTPS domains are strongly recommended before real users.
+Replace the example URLs with your real Vercel and Render URLs. If you later add custom domains, update every dependent service and redeploy the frontend because Vite envs are build-time values.
 
-### 2. Deploy Backend On EC2
+### 2. Deploy Backend On Render
 
-Install runtime packages on the EC2 instance:
+Create a Render Web Service from the GitHub repository.
 
-```bash
-sudo apt update
-sudo apt install -y nodejs npm nginx git
-sudo npm install -g pm2
+Render settings:
+
+```text
+Service Type: Web Service
+Root Directory: backend
+Runtime: Node
+Build Command: npm ci && npx prisma generate && npm run build
+Start Command: npm run start
+Health Check Path: /health
+Auto Deploy: enabled if you want every main branch push to deploy
 ```
 
-Clone or pull the project:
+Node version:
 
-```bash
-git clone <your-repo-url>
-cd AI_Website_Builder_PERN_Full_Stack_Project/backend
-```
+- `backend/package.json` already sets `"node": "22.x"` in `engines`.
+- If Render asks for an explicit env var, set `NODE_VERSION=22`.
 
-Create `backend/.env` from `backend/.env.example` and set production values:
+Backend production environment variables in Render:
 
 ```env
 NODE_ENV=production
-PORT=3000
 DATABASE_URL="your-neon-production-url"
 
 BETTER_AUTH_SECRET="long-production-secret"
-BETTER_AUTH_URL="https://api.yourdomain.com"
-TRUSTED_ORIGINS="https://app.yourdomain.com,https://your-vercel-app.vercel.app"
+BETTER_AUTH_URL="https://your-backend.onrender.com"
+TRUSTED_ORIGINS="https://your-frontend.vercel.app"
 
 AI_API_KEY="your-openrouter-key"
 GENERATION_TIMEOUT_MS=480000
@@ -499,91 +552,75 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
 
 INNGEST_EVENT_KEY="your-inngest-event-key"
 INNGEST_SIGNING_KEY="your-inngest-signing-key"
-INNGEST_SERVE_ORIGIN="https://api.yourdomain.com"
+INNGEST_SERVE_ORIGIN="https://your-backend.onrender.com"
 INNGEST_SERVE_PATH="/api/inngest"
 ```
 
-Install, migrate, build, and start:
+Important Render notes:
+
+- Do not upload `.env` files to Render. Add variables in Render Dashboard.
+- Render provides the runtime `PORT` automatically; the code already reads `process.env.PORT`.
+- Render's default web service port is `10000`, but you usually do not need to set it manually.
+- Keep `INNGEST_DEV` unset in Render production.
+- Keep `ENABLE_INLINE_GENERATION_FALLBACK` unset or `false` in Render production.
+- If you use Vercel preview deployments, add every allowed frontend origin to `TRUSTED_ORIGINS`, comma separated.
+
+Apply database migrations:
 
 ```bash
-npm ci
+cd backend
 npx prisma migrate deploy
-npx prisma generate
-npm run build
-pm2 start dist/server.js --name zephyr-api
-pm2 save
-pm2 startup
 ```
 
-If you want to isolate generation from API traffic, run the worker separately:
+Run migrations from your local machine using the production Neon `DATABASE_URL`, from Render Shell, or with a Render pre-deploy command if your Render plan/workflow supports it. Do not use `migrate dev` against production.
 
-```bash
-pm2 start dist/worker.js --name zephyr-worker
-pm2 save
+After Render deploys, verify:
+
+```text
+https://your-backend.onrender.com/
+https://your-backend.onrender.com/health
 ```
 
-For a single-process deployment, `dist/server.js` is enough because it also serves `/api/inngest`.
-
-### 3. Configure Nginx On EC2
-
-Basic single-process reverse proxy:
-
-```nginx
-server {
-    server_name api.yourdomain.com;
-
-    client_max_body_size 50m;
-    proxy_read_timeout 600s;
-    proxy_send_timeout 600s;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-If using the dedicated worker on port `3001`, route Inngest to it:
-
-```nginx
-location /api/inngest {
-    proxy_pass http://127.0.0.1:3001;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-```
-
-Enable the site, reload Nginx, and install HTTPS certificates with Certbot or your preferred SSL provider.
-
-Check:
-
-```bash
-curl https://api.yourdomain.com/health
-```
-
-Expected:
+Expected health response:
 
 ```json
 { "status": "ok" }
 ```
+
+### 3. Deploy Frontend On Vercel
+
+Create a Vercel project from the same GitHub repository.
+
+Vercel settings:
+
+```text
+Root Directory: frontend
+Install Command: npm ci
+Build Command: npm run build
+Output Directory: dist
+```
+
+Frontend production environment variables in Vercel:
+
+```env
+VITE_BASEURL="https://your-backend.onrender.com"
+VITE_APP_URL="https://your-frontend.vercel.app"
+```
+
+The existing `frontend/vercel.json` rewrites all routes to `index.html`, which is required for React Router deep links such as `/projects`, `/pricing`, and `/auth/sign-in`.
+
+After changing `VITE_BASEURL` or `VITE_APP_URL`, redeploy the frontend in Vercel.
 
 ### 4. Configure Inngest Cloud
 
 Inngest functions are served by Express at `/api/inngest` using the official `serve()` handler from `inngest/express`.
 
 1. Create an Inngest app.
-2. Add `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` to EC2 `.env`.
+2. Add `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` to Render environment variables.
 3. Sync the deployed endpoint:
 
 ```text
-https://api.yourdomain.com/api/inngest
+https://your-backend.onrender.com/api/inngest
 ```
 
 4. Confirm Inngest sees `process-website-generation`.
@@ -596,22 +633,30 @@ In Google Cloud Console, add:
 Authorized JavaScript origins:
 
 ```text
-https://app.yourdomain.com
-https://api.yourdomain.com
+https://your-frontend.vercel.app
+https://your-backend.onrender.com
 ```
 
 Authorized redirect URI:
 
 ```text
-https://api.yourdomain.com/api/auth/callback/google
+https://your-backend.onrender.com/api/auth/callback/google
 ```
+
+If you see `state mismatch` after Google OAuth:
+
+1. Confirm `BETTER_AUTH_URL` exactly matches the Render backend origin.
+2. Confirm `VITE_BASEURL` exactly matches the Render backend origin.
+3. Confirm `VITE_APP_URL` exactly matches the Vercel frontend origin.
+4. Confirm both frontend and backend origins are in `TRUSTED_ORIGINS`.
+5. Redeploy both services after env changes.
 
 ### 6. Configure Stripe
 
 Set Stripe webhook endpoint:
 
 ```text
-https://api.yourdomain.com/api/stripe
+https://your-backend.onrender.com/api/stripe
 ```
 
 Copy the webhook secret to:
@@ -620,39 +665,7 @@ Copy the webhook secret to:
 STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
-### 7. Deploy Frontend On Vercel
-
-Build command:
-
-```bash
-npm run build
-```
-
-Output directory:
-
-```text
-dist
-```
-
-Production env:
-
-```env
-VITE_BASEURL="https://api.yourdomain.com"
-VITE_APP_URL="https://app.yourdomain.com"
-```
-
-Vercel uses build-time environment variables for Vite, so any change to `VITE_BASEURL` requires a new frontend deployment.
-
-Vercel project settings:
-
-```text
-Root Directory: frontend
-Build Command: npm run build
-Output Directory: dist
-Install Command: npm ci
-```
-
-The existing `frontend/vercel.json` rewrites all routes to `index.html`, which is required for React Router deep links.
+After setting the webhook secret in Render, redeploy or restart the backend.
 
 ## Production Environment Checklist
 
@@ -661,8 +674,8 @@ Backend:
 ```env
 DATABASE_URL="your-neon-production-url"
 BETTER_AUTH_SECRET="production-secret"
-BETTER_AUTH_URL="https://your-backend-domain.com"
-TRUSTED_ORIGINS="https://your-frontend-domain.com"
+BETTER_AUTH_URL="https://your-backend.onrender.com"
+TRUSTED_ORIGINS="https://your-frontend.vercel.app"
 NODE_ENV="production"
 AI_API_KEY="your-openrouter-key"
 GOOGLE_CLIENT_ID="your-google-oauth-client-id"
@@ -671,7 +684,7 @@ STRIPE_SECRET_KEY="your-stripe-secret"
 STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
 INNGEST_EVENT_KEY="your-inngest-event-key"
 INNGEST_SIGNING_KEY="your-inngest-signing-key"
-INNGEST_SERVE_ORIGIN="https://your-backend-domain.com"
+INNGEST_SERVE_ORIGIN="https://your-backend.onrender.com"
 INNGEST_SERVE_PATH="/api/inngest"
 GENERATION_TIMEOUT_MS=480000
 REVISION_TIMEOUT_MS=240000
@@ -683,8 +696,8 @@ ENABLE_REVISION_PROMPT_ENHANCEMENT=false
 Frontend:
 
 ```env
-VITE_BASEURL="https://your-backend-domain.com"
-VITE_APP_URL="https://your-frontend-domain.com"
+VITE_BASEURL="https://your-backend.onrender.com"
+VITE_APP_URL="https://your-frontend.vercel.app"
 ```
 
 ## Commit Message

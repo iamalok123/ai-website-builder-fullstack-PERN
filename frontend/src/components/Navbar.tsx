@@ -48,32 +48,12 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Background Gradient Glow On top of the navbar */}
-      {/* <div className="absolute inset-x-0 top-0 -z-10 overflow-hidden pointer-events-none h-[700px]">
-        <svg
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1600px] h-[800px] opacity-60"
-          viewBox="0 0 1600 800"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <ellipse cx="800" cy="100" rx="700" ry="500" fill="url(#heroGradient)" />
-          <defs>
-            <radialGradient id="heroGradient" cx="0.5" cy="0.3" r="0.7" gradientUnits="objectBoundingBox">
-              <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.5" />
-              <stop offset="50%" stopColor="#6366f1" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#1e1b4b" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-        </svg>
-      </div> */}
-
-
       {/* Desktop Navbar - Rounded Pill Style */}
-      <nav className="z-50 flex items-center justify-center w-full py-4 px-4">
-        <div className="flex items-center justify-between w-full max-w-4xl md:max-w-6xl border border-white/20 rounded-full px-4 py-2.5 text-white backdrop-blur-md bg-white/5 shadow-lg">
+      <nav className="z-50 flex w-full items-center justify-center px-3 py-4 sm:px-4">
+        <div className="flex w-full max-w-4xl items-center justify-between rounded-full border border-white/10 bg-[#070a08]/75 px-4 py-2.5 text-white shadow-2xl shadow-black/30 backdrop-blur-xl md:max-w-6xl">
           {/* Logo */}
           <Link to='/'>
-            <img src="logo.svg" alt="Logo" width={68} height={26} className="h-7 w-auto" style={{ filter: 'brightness(1.2) sepia(1) saturate(3) hue-rotate(15deg)' }} />
+            <img src="logo.svg" alt="Logo" width={68} height={26} className="h-7 w-auto" style={{ filter: 'brightness(1.55) sepia(0.75) saturate(1.7) hue-rotate(58deg)' }} />
           </Link>
 
           {/* Desktop Nav Links */}
@@ -83,8 +63,8 @@ const Navbar = () => {
                 key={link.to}
                 to={link.to}
                 className={`px-4 py-2 rounded-full border transition-all duration-200 ${isActive(link.to)
-                  ? 'border-amber-400/50 bg-amber-400/10 font-medium text-white'
-                  : 'border-transparent bg-transparent hover:border-white/20 hover:bg-white/10 text-white'
+                  ? 'border-lime-200/35 bg-lime-200/10 font-medium text-lime-50 shadow-inner shadow-lime-200/5'
+                  : 'border-transparent bg-transparent text-white/76 hover:border-white/12 hover:bg-white/[0.07] hover:text-white'
                   }`}
               >
                 {link.label}
@@ -96,16 +76,16 @@ const Navbar = () => {
           <div className="flex items-center gap-3">
             {!session?.user ? (
               <button
-                className="px-5 py-1.5 text-sm bg-linear-to-r from-amber-500 to-amber-600 text-white active:scale-95 hover:from-amber-600 hover:to-amber-700 transition rounded-full font-medium"
+                className="rounded-full bg-lime-300 px-5 py-1.5 text-sm font-semibold text-[#08100b] shadow-lg shadow-lime-300/15 transition hover:bg-lime-200 active:scale-95"
                 onClick={() => navigate('/auth/sign-in')}
               >
                 Get started
               </button>
             ) : (
               <>
-                <button className="bg-white/10 px-5 py-1.5 text-xs sm:text-sm border border-white/20 text-white active:scale-95 hover:bg-white/20 transition rounded-full">
+                <button className="rounded-full border border-white/10 bg-white/5.5 px-4 py-1.5 text-xs text-white/80 transition hover:border-lime-200/25 hover:bg-white/8.5 active:scale-95 sm:px-5 sm:text-sm">
                   Credits :
-                  <span className="text-amber-400 font-medium pl-1">
+                  <span className="pl-1 font-semibold text-lime-200">
                     {credits}
                   </span>
                 </button>
@@ -116,8 +96,9 @@ const Navbar = () => {
             }
 
             <button
-              className="md:hidden active:scale-90 transition text-white"
+              className="rounded-full border border-white/10 bg-white/5.5 p-2 text-white transition active:scale-90 md:hidden"
               onClick={() => setMenuOpen(true)}
+              aria-label="Open navigation menu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 6h16" />
@@ -132,16 +113,17 @@ const Navbar = () => {
 
       {/* Mobile Menu Overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 z-100 bg-black/80 text-white backdrop-blur-sm flex flex-col items-center justify-center text-lg gap-8 md:hidden">
+        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center gap-8 bg-[#050706]/92 text-lg text-white backdrop-blur-xl md:hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(217,249,157,0.14),transparent_38%)]" />
           {/* Mobile Nav Links */}
           {navLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
               onClick={() => setMenuOpen(false)}
-              className={`px-6 py-3 rounded-full transition ${isActive(link.to)
-                ? 'border border-white/10 bg-white/10 font-medium'
-                : 'hover:border hover:border-white/10 hover:bg-white/10'
+              className={`relative px-6 py-3 rounded-full transition ${isActive(link.to)
+                ? 'border border-lime-200/25 bg-lime-200/10 font-medium text-lime-50'
+                : 'border border-transparent text-white/76 hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
                 }`}
             >
               {link.label}
@@ -150,8 +132,9 @@ const Navbar = () => {
 
           {/* Close Button */}
           <button
-            className="mt-4 bg-gray-800 hover:bg-black text-white p-2 rounded-md aspect-square font-medium active:scale-90 transition"
+            className="relative mt-4 aspect-square rounded-lg border border-white/10 bg-white/5.5 p-2 font-medium text-white transition hover:border-lime-200/25 hover:bg-white/8.5 active:scale-90"
             onClick={() => setMenuOpen(false)}
+            aria-label="Close navigation menu"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6 6 18" />

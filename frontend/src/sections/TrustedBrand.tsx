@@ -7,18 +7,15 @@ const COMPANY_LOGOS = [
     'company_logos/company-logo-5.svg',
 ] as const;
 
-// Golden tint filter matching the navbar logo style
-const goldenFilter = 'brightness(0.8) sepia(1) saturate(3) hue-rotate(15deg)';
-
 export default function TrustedBrand() {
     return (
-        <section className="mt-32 max-sm:mt-22 px-4">
-            <p className="py-6 text-center text-white/80 text-base font-medium">
-                Trusted by world's leading brands —
+        <section className="px-4 pt-16 md:pt-20">
+            <p className="text-center text-sm font-medium text-white/45">
+                Built for creators shipping polished websites without a traditional design handoff
             </p>
 
             <div
-                className="flex flex-wrap justify-center items-center gap-12 md:gap-16 max-w-4xl mx-auto py-4"
+                className="mx-auto mt-7 flex max-w-5xl flex-wrap items-center justify-center gap-8 rounded-[10px] border border-white/10 bg-white/[0.035] px-6 py-6 backdrop-blur-md md:gap-14"
                 id="logo-container"
             >
                 {COMPANY_LOGOS.map((logo, index) => (
@@ -26,8 +23,7 @@ export default function TrustedBrand() {
                         key={index}
                         src={logo}
                         alt={`Company logo ${index + 1}`}
-                        className="h-7 w-auto opacity-70 hover:opacity-100 transition-opacity duration-200"
-                        style={{ filter: goldenFilter }}
+                        className="h-7 w-auto opacity-45 grayscale invert transition duration-200 hover:opacity-80"
                     />
                 ))}
             </div>

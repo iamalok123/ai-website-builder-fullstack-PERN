@@ -69,16 +69,16 @@ const TESTIMONIALS: Testimonial[] = [
 
 export default function OurTestimonials() {
     return (
-        <section className="flex flex-col items-center justify-between max-w-6xl mx-auto mt-32 max-sm:mt-22 px-4">
+        <section className="mx-auto flex max-w-7xl flex-col items-center justify-between px-4 pt-28 md:pt-32">
             {/* Section Header */}
-            <p className="text-purple-400 font-medium text-sm tracking-wide uppercase">
-                What Our Users Say
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-lime-200/80">
+                Proof
             </p>
-            <h3 className="text-3xl md:text-4xl font-semibold text-white mt-3">
-                Loved by Creators
+            <h3 className="mt-3 text-center text-3xl font-semibold text-white md:text-5xl">
+                Built for people who need to move fast.
             </h3>
-            <p className="mt-4 text-sm/6 text-white/70 max-w-md text-center">
-                Thousands of entrepreneurs, freelancers, and businesses trust Zephyr to bring their website ideas to life instantly.
+            <p className="mt-4 max-w-xl text-center text-sm leading-6 text-white/58">
+                Creators use Zephyr to turn raw ideas into a live-looking website draft, then iterate until it is ready to share.
             </p>
 
             {/* Marquee Rows */}
@@ -98,14 +98,14 @@ export default function OurTestimonials() {
 
 function TestimonialCard({ item }: { item: Testimonial }) {
     return (
-        <div className="w-full max-w-88 mx-2 space-y-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 text-white/80 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+        <div className="mx-2 w-full max-w-[88] space-y-4 rounded-lg border border-white/10 bg-white/5.5 p-5 text-white/78 shadow-xl shadow-black/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/7.5">
             {/* Rating & Date */}
             <div className="flex items-center justify-between">
                 <div className="flex gap-0.5">
                     {[...Array(item.rating)].map((_, index) => (
                         <StarIcon
                             key={index}
-                            className="size-4 fill-purple-400 text-purple-400"
+                            className="size-4 fill-lime-300 text-lime-300"
                         />
                     ))}
                 </div>
@@ -118,7 +118,7 @@ function TestimonialCard({ item }: { item: Testimonial }) {
             {/* User Info */}
             <div className="flex items-center gap-3 pt-2 border-t border-white/10">
                 <img
-                    className="size-9 rounded-full ring-2 ring-purple-400/30"
+                    className="size-9 rounded-full ring-2 ring-lime-200/25"
                     width={40}
                     height={40}
                     src={item.image}

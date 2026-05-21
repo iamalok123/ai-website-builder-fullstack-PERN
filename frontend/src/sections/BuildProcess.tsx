@@ -7,27 +7,27 @@ type Step = {
 
 const LEFT_STEPS: Step[] = [
     {
-        title: "AI Generates Smart Layouts",
+        title: "AI plans the page structure",
         description:
-            "Our AI Layout Generator creates a complete website structure with proper sections, spacing, and layout flow, ensuring a clean, modern, and high-conversion design from the start.",
+            "Zephyr maps the prompt into a real website journey: hero message, offer explanation, feature proof, pricing or CTA, and responsive section order.",
     },
     {
-        title: "Website Is Optimized & Published",
+        title: "You revise, save, and launch",
         description:
-            "Performance Optimization is applied automatically to improve speed, structure, and responsiveness, so your website is fast, stable, and ready to publish across all devices.",
+            "Use follow-up prompts to change colors, content, layout, or sections. When the generation is finished, preview, save, download, or publish from the workspace.",
     },
 ];
 
 const RIGHT_STEPS: Step[] = [
     {
-        title: "Describe Your Website Idea",
+        title: "Describe the business idea",
         description:
-            "Explain your business type, target audience, and style in a few words. Our system understands your intent and prepares everything needed to build a website that fits your vision.",
+            "Start with the audience, offer, style, and goal. The system uses that context to avoid generic pages and build around the thing you are actually shipping.",
     },
     {
-        title: "Content Is Written Automatically",
+        title: "Code and content are generated",
         description:
-            "The AI Content Writer generates headlines, section text, and call-to-actions tailored to your website goals, keeping everything clear, engaging, and optimized for user interaction.",
+            "The builder writes page copy and frontend structure together, so the design, text, and call-to-action feel like one finished website instead of loose blocks.",
     },
 ];
 
@@ -67,34 +67,38 @@ export default function BuildProcess() {
     }, []);
 
     return (
-        <section id="process" className="flex flex-col items-center mt-32 max-sm:mt-22 px-4">
+        <section id="process" className="px-4 pt-28 md:pt-32">
+            <div className="mx-auto max-w-7xl rounded-[24px] border border-white/10 bg-white/[0.035] px-6 py-14 backdrop-blur-md md:px-10 lg:px-14">
             {/* Section Header */}
-            <p className="text-amber-400 font-medium text-sm tracking-wide uppercase">
-                Simple 4-Step Process
+            <p className="text-center text-sm font-semibold uppercase tracking-[0.22em] text-lime-200/80">
+                Build story
             </p>
 
-            <h3 className="text-3xl md:text-4xl font-semibold max-w-md text-white text-center mt-4">
-                Build Your Website in Just Four Simple Steps
+            <h3 className="mx-auto mt-4 max-w-2xl text-center text-3xl font-semibold leading-tight text-white md:text-5xl">
+                A modern website workflow without switching tools.
             </h3>
+            <p className="mx-auto mt-4 max-w-2xl text-center text-sm leading-6 text-white/58 md:text-base">
+                Move from a rough business idea to a polished website draft with fewer handoffs, fewer blank screens, and a clearer path to launch.
+            </p>
 
             {/* Process Steps */}
-            <div className="flex flex-col md:flex-row mt-16 md:mt-24 gap-8 md:gap-0">
+            <div className="mt-12 flex flex-col gap-5 md:mt-16 lg:mt-24 lg:flex-row lg:gap-0">
                 {/* Left Column */}
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-5 lg:gap-0">
                     {LEFT_STEPS.map((step, index) => (
-                        <div key={index} className="max-w-lg md:h-60 md:mt-60 first:mt-0 mb-8 md:mb-0">
-                            <h3 className="text-xl font-semibold text-white border-b border-amber-400/50 pb-2 inline-block">
+                        <div key={index} className="max-w-full rounded-lg border border-white/10 bg-black/20 p-6 lg:mb-0 lg:mt-60 lg:h-60 lg:max-w-lg first:mt-0">
+                            <h3 className="inline-block border-b border-lime-200/50 pb-2 text-xl font-semibold text-white">
                                 {step.title}
                             </h3>
-                            <p className="mt-4 text-white/70 text-sm/6">{step.description}</p>
+                            <p className="mt-4 text-sm leading-6 text-white/58">{step.description}</p>
                         </div>
                     ))}
                 </div>
 
                 {/* Progress Bar - Desktop Only */}
-                <div className="hidden md:flex flex-col items-center mx-12">
+                <div className="mx-12 hidden flex-col items-center lg:flex">
                     {/* Start Node */}
-                    <div className={`size-4 rounded-sm transition-colors duration-300 ${progress[0] > 0 ? "bg-amber-400" : "bg-white/30"}`} />
+                    <div className={`size-4 rounded-sm transition-colors duration-300 ${progress[0] > 0 ? "bg-lime-300" : "bg-white/25"}`} />
 
                     {[0, 1, 2].map((i) => (
                         <div key={i} className="flex flex-col items-center">
@@ -102,30 +106,31 @@ export default function BuildProcess() {
                             <div
                                 ref={(el) => { segmentRefs.current[i] = el; }}
                                 data-index={i}
-                                className="relative w-1 h-60 bg-white/20 rounded-full overflow-hidden"
+                                className="relative h-60 w-1 overflow-hidden rounded-full bg-white/15"
                             >
                                 <div
                                     style={{ height: `${progress[i] * 100}%` }}
-                                    className="absolute top-0 left-0 w-full bg-linear-to-b from-amber-400 to-amber-500 transition-all duration-100 ease-out rounded-full"
+                                    className="absolute left-0 top-0 w-full rounded-full bg-linear-to-b from-lime-200 to-teal-300 transition-all duration-100 ease-out"
                                 />
                             </div>
                             {/* End Node */}
-                            <div className={`size-4 rounded-sm transition-colors duration-300 ${progress[i] >= 0.95 ? "bg-amber-400" : "bg-white/30"}`} />
+                            <div className={`size-4 rounded-sm transition-colors duration-300 ${progress[i] >= 0.95 ? "bg-lime-300" : "bg-white/25"}`} />
                         </div>
                     ))}
                 </div>
 
                 {/* Right Column */}
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-5 lg:gap-0">
                     {RIGHT_STEPS.map((step, index) => (
-                        <div key={index} className={`max-w-lg md:h-60 ${index === 0 ? "" : "md:mt-60"} mb-8 md:mb-0`}>
-                            <h3 className="text-xl font-semibold text-white border-b border-amber-400/50 pb-2 inline-block">
+                        <div key={index} className={`max-w-full rounded-lg border border-white/10 bg-black/20 p-6 lg:mb-0 lg:h-60 lg:max-w-lg ${index === 0 ? "" : "lg:mt-60"}`}>
+                            <h3 className="inline-block border-b border-lime-200/50 pb-2 text-xl font-semibold text-white">
                                 {step.title}
                             </h3>
-                            <p className="mt-4 text-white/70 text-sm/6">{step.description}</p>
+                            <p className="mt-4 text-sm leading-6 text-white/58">{step.description}</p>
                         </div>
                     ))}
                 </div>
+            </div>
             </div>
         </section>
     );

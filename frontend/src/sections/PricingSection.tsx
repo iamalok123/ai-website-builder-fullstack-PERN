@@ -40,47 +40,52 @@ export default function PricingSection() {
         },
     ];
     return (
-        <section id="pricing" className="flex flex-col md:flex-row gap-14 items-start justify-between max-w-7xl mx-auto mt-32 px-4">
-            <div className="max-w-sm">
-                <h3 className="font-domine text-3xl text-white">OUR PRICING</h3>
-                <p className="mt-4 text-sm/6 text-white">Choose a credit pack that fits your goals and scale. Every pack supports AI generation, revisions, publishing, and downloads.</p>
+        <section id="pricing" className="px-4 pt-28 md:pt-32">
+            <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-14 rounded-[24px] border border-white/10 bg-[#050706] px-6 py-14 md:flex-row md:px-10 lg:px-14">
+            <div className="max-w-md">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-lime-200/80">Credits</p>
+                <h3 className="mt-4 text-3xl font-semibold leading-tight text-white md:text-5xl">Start small, then scale website creation.</h3>
+                <p className="mt-4 text-sm leading-6 text-white/60">Choose a credit pack that fits your goals. Every pack supports AI generation, revisions, publishing, downloads, and project history.</p>
                 <div className="mt-8 space-y-4">
                     <div className="flex items-center gap-3 text-white">
-                        <div className="p-2.5 border border-amber-400/50 rounded-md bg-amber-400/10">
-                            <SparklesIcon className="size-5 text-amber-400" />
+                        <div className="rounded-lg border border-lime-200/20 bg-lime-200/10 p-2.5">
+                            <SparklesIcon className="size-5 text-lime-200" />
                         </div>
                         <p>AI generation and revisions included</p>
                     </div>
                     <div className="flex items-center gap-3 text-white">
-                        <div className="p-2.5 border border-amber-400/50 rounded-md bg-amber-400/10">
-                            <ZapIcon className="size-5 text-amber-400" />
+                        <div className="rounded-lg border border-lime-200/20 bg-lime-200/10 p-2.5">
+                            <ZapIcon className="size-5 text-lime-200" />
                         </div>
                         <p>Responsive HTML output with Tailwind</p>
                     </div>
                     <div className="flex items-center gap-3 text-white">
-                        <div className="p-2.5 border border-amber-400/50 rounded-md bg-amber-400/10">
-                            <ShieldCheckIcon className="size-5 text-amber-400" />
+                        <div className="rounded-lg border border-lime-200/20 bg-lime-200/10 p-2.5">
+                            <ShieldCheckIcon className="size-5 text-lime-200" />
                         </div>
                         <p>Clear honest usage with limits</p>
                     </div>
                 </div>
             </div>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-10 items-end flex-1'>
+            <div className='grid flex-1 grid-cols-1 items-end gap-6 md:grid-cols-2'>
                 {data.map((item, index) => (
-                    <div key={index} className={`group w-full max-w-80 rounded-xl p-6 pb-10 border ${item.mostPopular ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-900'}`}>
+                    <div key={index} className={`group w-full rounded-lg border p-6 pb-8 shadow-2xl transition duration-300 hover:-translate-y-1 ${item.mostPopular ? 'border-lime-200/30 bg-linear-to-b from-lime-200/[0.14] to-white/[0.035] text-white shadow-lime-950/30' : 'border-white/10 bg-white/[0.035] text-white shadow-black/20'}`}>
+                        {item.mostPopular && (
+                            <p className="mb-4 inline-flex rounded-full border border-lime-200/25 bg-lime-200/10 px-3 py-1 text-xs font-medium text-lime-100">Most popular</p>
+                        )}
                         <div className={`flex flex-col items-center justify-center text-center`}>
                             <h3 className='text-lg font-semibold'>{item.title}</h3>
-                            <p className={item.mostPopular ? 'text-gray-400' : 'text-gray-600'}>{item.description}</p>
+                            <p className='text-sm text-white/52'>{item.description}</p>
                             <p className='mt-4 text-2xl font-semibold'>
-                                {item.price} <span className={`text-sm font-normal ${item.mostPopular ? 'text-gray-400' : 'text-gray-600'}`}>credit pack</span>
+                                {item.price} <span className='text-sm font-normal text-white/45'>credit pack</span>
                             </p>
-                            <button className={`mt-4 w-full rounded-lg py-2.5 font-medium transition ${item.mostPopular ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'}`}>{item.buttonText}</button>
+                            <button className={`mt-4 w-full rounded-lg py-2.5 font-semibold transition ${item.mostPopular ? 'bg-lime-300 text-[#08100b] hover:bg-lime-200' : 'border border-white/15 bg-white/[8 text-white hover:bg-white/[0.14]'}`}>{item.buttonText}</button>
                         </div>
                         <div className='mt-2 flex flex-col'>
                             {item.features.map((feature, index) => (
-                                <div key={index} className={`flex items-center gap-2 border-b py-3 ${item.mostPopular ? 'border-gray-700' : 'border-gray-200'}`}>
-                                    <div className={`rounded-full p-1 ${item.mostPopular ? 'bg-white/10' : 'bg-gray-900'}`}>
-                                        <CheckIcon className={`size-3 text-white`} strokeWidth={2.5} />
+                                <div key={index} className='flex items-center gap-2 border-b border-white/10 py-3 text-sm text-white/72'>
+                                    <div className='rounded-full bg-lime-200/15 p-1'>
+                                        <CheckIcon className='size-3 text-lime-200' strokeWidth={2.5} />
                                     </div>
                                     {feature}
                                 </div>
@@ -88,6 +93,7 @@ export default function PricingSection() {
                         </div>
                     </div>
                 ))}
+            </div>
             </div>
         </section>
     );
