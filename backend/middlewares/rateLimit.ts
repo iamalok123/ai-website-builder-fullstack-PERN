@@ -65,12 +65,46 @@ export const createRateLimit = ({ name, windowMs, max, message }: RateLimitOptio
     }
 }
 
-export const authRateLimit = createRateLimit({
+const authMutationRateLimit = createRateLimit({
     name: 'auth',
     windowMs: 15 * 60 * 1000,
     max: 30,
     message: 'Too many authentication attempts. Please try again later.',
 });
+
+const authSessionReadRateLimit = createRateLimit({
+    name: 'auth-session-read',
+    windowMs: 60 * 1000,
+    max: 180,
+    message: 'Too many session checks. Please try again later.',
+});
+
+const authSocialSignInRateLimit = createRateLimit({
+    name: 'auth-social-sign-in',
+    windowMs: 5 * 60 * 1000,
+    max: 30,
+    message: 'Too many sign-in attempts. Please try again later.',
+});
+
+const getAuthPath = (req: Request) => (req.path.replace(/\/+$/, '') || '/');
+
+export const authRateLimit = (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'OPTIONS') {
+        return next();
+    }
+
+    const path = getAuthPath(req);
+
+    if (req.method === 'GET' && path === '/get-session') {
+        return authSessionReadRateLimit(req, res, next);
+    }
+
+    if (req.method === 'POST' && path === '/sign-in/social') {
+        return authSocialSignInRateLimit(req, res, next);
+    }
+
+    return authMutationRateLimit(req, res, next);
+}
 
 export const aiGenerationRateLimit = createRateLimit({
     name: 'ai-generation',

@@ -12,6 +12,7 @@ import { inngest } from "./lib/inngest.js";
 import { inngestFunctions } from "./inngest/functions.js";
 
 const app = express();
+app.set('trust proxy', 1);
 
 const port = process.env.PORT || 3000;
 
