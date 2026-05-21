@@ -98,10 +98,10 @@ export default function OurTestimonials() {
 
 function TestimonialCard({ item }: { item: Testimonial }) {
     return (
-        <div className="mx-2 w-full max-w-[88] space-y-4 rounded-lg border border-white/10 bg-white/5.5 p-5 text-white/78 shadow-xl shadow-black/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/7.5">
+        <div className="mx-2 flex h-[310px] w-[calc(100vw-2rem)] max-w-[360px] flex-col rounded-lg border border-white/10 bg-white/5.5 p-5 text-white/78 shadow-xl shadow-black/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/7.5 sm:h-[280px] sm:w-[360px]">
             {/* Rating & Date */}
-            <div className="flex items-center justify-between">
-                <div className="flex gap-0.5">
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex shrink-0 gap-0.5">
                     {[...Array(item.rating)].map((_, index) => (
                         <StarIcon
                             key={index}
@@ -109,22 +109,24 @@ function TestimonialCard({ item }: { item: Testimonial }) {
                         />
                     ))}
                 </div>
-                <p className="text-white/50 text-sm">{item.date}</p>
+                <p className="shrink-0 text-sm text-white/50">{item.date}</p>
             </div>
 
             {/* Review */}
-            <p className="text-white/80 text-sm leading-relaxed">"{item.review}"</p>
+            <p className="mt-4 flex-1 overflow-hidden text-sm leading-6 text-white/80">
+                "{item.review}"
+            </p>
 
             {/* User Info */}
-            <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+            <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4">
                 <img
-                    className="size-9 rounded-full ring-2 ring-lime-200/25"
+                    className="size-10 shrink-0 rounded-full object-cover ring-2 ring-lime-200/25"
                     width={40}
                     height={40}
                     src={item.image}
                     alt={item.name}
                 />
-                <p className="font-medium text-white">{item.name}</p>
+                <p className="min-w-0 truncate font-medium text-white">{item.name}</p>
             </div>
         </div>
     );
