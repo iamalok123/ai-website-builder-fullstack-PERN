@@ -98,7 +98,7 @@ export default function OurTestimonials() {
 
 function TestimonialCard({ item }: { item: Testimonial }) {
     return (
-        <div className="mx-2 flex h-[310px] w-[calc(100vw-2rem)] max-w-[360px] flex-col rounded-lg border border-white/10 bg-white/5.5 p-5 text-white/78 shadow-xl shadow-black/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/7.5 sm:h-[280px] sm:w-[360px]">
+        <div className="mx-2 flex h-77.5 w-[calc(100vw-2rem)] max-w-90 flex-col rounded-lg border border-white/10 bg-white/5.5 p-5 text-white/78 shadow-xl shadow-black/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/7.5 sm:h-70 sm:w-90">
             {/* Rating & Date */}
             <div className="flex items-center justify-between gap-3">
                 <div className="flex shrink-0 gap-0.5">
