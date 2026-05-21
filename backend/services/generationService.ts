@@ -14,7 +14,6 @@ export const GENERATION_TIMEOUT_MS = Number(process.env.GENERATION_TIMEOUT_MS ||
 export const REVISION_TIMEOUT_MS = Number(process.env.REVISION_TIMEOUT_MS || DEFAULT_REVISION_TIMEOUT_MS);
 const AI_REQUEST_TIMEOUT_MS = Number(process.env.AI_REQUEST_TIMEOUT_MS || DEFAULT_AI_REQUEST_TIMEOUT_MS);
 const PRISMA_TRANSACTION_TIMEOUT_MS = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS || DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS);
-const ENABLE_REVISION_PROMPT_ENHANCEMENT = process.env.ENABLE_REVISION_PROMPT_ENHANCEMENT === "true";
 
 const getJobTimeoutMs = (type?: "initial" | "revision") => {
     return type === "revision" ? REVISION_TIMEOUT_MS : GENERATION_TIMEOUT_MS;
@@ -72,6 +71,29 @@ const providerAuthError = () => new Error(
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const normalizePrompt = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
+
+const hasUsefulEnhancement = (original: string, enhanced: string) => {
+    const normalizedOriginal = normalizePrompt(original);
+    const normalizedEnhanced = normalizePrompt(enhanced);
+
+    return Boolean(normalizedEnhanced)
+        && normalizedEnhanced !== normalizedOriginal
+        && normalizedEnhanced.length >= normalizedOriginal.length + 80;
+};
+
+const buildEnhancedInitialPromptFallback = (initialPrompt: string) => {
+    const prompt = initialPrompt.trim();
+
+    return `Create a polished, production-quality, fully responsive one-page website based on this user request: "${prompt}". Infer the likely business, audience, and goal from the request, then expand it into a clear website brief with a strong brand direction, professional copy, and practical sections. Use a tasteful modern visual style with high contrast, a restrained 4-color palette, polished Google Fonts, clear CTA hierarchy, generous whitespace, balanced cards, subtle borders, and consistent spacing. Include 4-6 useful sections such as nav, hero, proof/about, features or services, CTA/contact, and footer. The design must be mobile-first and work cleanly on phone, tablet, laptop, and desktop: no horizontal scroll, responsive grids, readable text, properly wrapping buttons, balanced columns, and sections that stack naturally on small screens. Use only helpful picsum.photos images if images improve the design; otherwise rely on typography, layout, chips, stats, and cards. Avoid SVGs, iframes, carousels, complex animations, clutter, random colors, low contrast text, and fabricated asset URLs.`;
+};
+
+const buildEnhancedRevisionPromptFallback = (message: string) => {
+    const prompt = message.trim();
+
+    return `Apply this requested website change: "${prompt}". Preserve the existing design system while improving spacing, alignment, typography, contrast, CTA hierarchy, and responsive behavior. Ensure the updated page remains polished on phone, tablet, laptop, and desktop with no horizontal overflow, readable text, balanced cards, and clean mobile stacking.`;
+};
+
 const enhanceInitialPrompt = async (initialPrompt: string, deadline: number) => {
     try {
         assertGenerationDeadline(deadline);
@@ -101,14 +123,17 @@ Keep it concise but detailed. No markdown headings. No SVGs, iframes, carousels,
             ]
         }, { timeout: getRequestTimeout(deadline) });
 
-        return getCompletionText(response) || initialPrompt;
+        const enhancedPrompt = getCompletionText(response).trim();
+        return hasUsefulEnhancement(initialPrompt, enhancedPrompt)
+            ? enhancedPrompt
+            : buildEnhancedInitialPromptFallback(initialPrompt);
     } catch (error) {
         if (isProviderAuthError(error)) {
             throw providerAuthError();
         }
 
-        console.warn("Prompt enhancement failed, using original prompt:", error);
-        return initialPrompt;
+        console.warn("Prompt enhancement failed, using deterministic enhanced prompt:", error);
+        return buildEnhancedInitialPromptFallback(initialPrompt);
     }
 };
 
@@ -133,14 +158,17 @@ Include only what should change, and mention how to keep typography, spacing, co
             ]
         }, { timeout: getRequestTimeout(deadline) });
 
-        return getCompletionText(response) || message;
+        const enhancedPrompt = getCompletionText(response).trim();
+        return hasUsefulEnhancement(message, enhancedPrompt)
+            ? enhancedPrompt
+            : buildEnhancedRevisionPromptFallback(message);
     } catch (error) {
         if (isProviderAuthError(error)) {
             throw providerAuthError();
         }
 
-        console.warn("Prompt enhancement failed, using original message:", error);
-        return message;
+        console.warn("Prompt enhancement failed, using deterministic enhanced revision:", error);
+        return buildEnhancedRevisionPromptFallback(message);
     }
 };
 
@@ -429,27 +457,24 @@ export const runGenerationJob = async (jobId: string) => {
     });
 
     try {
-        const shouldEnhancePrompt = job.type === "initial" || ENABLE_REVISION_PROMPT_ENHANCEMENT;
-        const enhancedPrompt = shouldEnhancePrompt
-            ? job.type === "initial"
-                ? await enhanceInitialPrompt(job.prompt, deadline)
-                : await enhanceRevisionPrompt(job.prompt, deadline)
-            : job.prompt;
+        const enhancedPrompt = job.type === "initial"
+            ? await enhanceInitialPrompt(job.prompt, deadline)
+            : await enhanceRevisionPrompt(job.prompt, deadline);
+
+        const promptForGeneration = enhancedPrompt;
 
         await prisma.generationJob.update({
             where: { id: jobId },
-            data: { enhancedPrompt }
+            data: { enhancedPrompt: promptForGeneration }
         });
 
-        if (shouldEnhancePrompt) {
-            await prisma.conversation.create({
-                data: {
-                    role: "assistant",
-                    content: `I have enhanced your prompt to : "${enhancedPrompt}"`,
-                    projectId: job.projectId
-                }
-            });
-        }
+        await prisma.conversation.create({
+            data: {
+                role: "assistant",
+                content: `I have enhanced your prompt to : "${promptForGeneration}"`,
+                projectId: job.projectId
+            }
+        });
 
         await prisma.conversation.create({
             data: {
@@ -461,8 +486,8 @@ export const runGenerationJob = async (jobId: string) => {
 
         assertGenerationDeadline(deadline);
         const generatedCode = job.type === "initial"
-            ? await generateInitialWebsiteCode(enhancedPrompt || job.prompt, deadline)
-            : await generateRevisionWebsiteCode(job.project.current_code || "", enhancedPrompt || job.prompt, deadline);
+            ? await generateInitialWebsiteCode(promptForGeneration, deadline)
+            : await generateRevisionWebsiteCode(job.project.current_code || "", promptForGeneration, deadline);
 
         if (!generatedCode) {
             throw new Error("The AI model did not return valid HTML.");
