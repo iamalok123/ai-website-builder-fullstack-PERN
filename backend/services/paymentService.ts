@@ -1,11 +1,13 @@
 import Stripe from "stripe";
 
+// Define credit plans with their cost in USD
 export const creditPlans = {
     basic: { credits: 100, amount: 5 },
     pro: { credits: 400, amount: 19 },
     enterprise: { credits: 1000, amount: 49 },
 } as const;
 
+// Create a type that represents the keys of the creditPlans object
 export type CreditPlanId = keyof typeof creditPlans;
 
 export const getCreditPlan = (planId: string) => {
@@ -45,6 +47,6 @@ export const createCreditCheckoutSession = async ({
             transactionId,
             appId: 'ai-website-builder',
         },
-        expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+        expires_at: Math.floor(Date.now() / 1000) + 30 * 60, //Session expires in 30 minutes
     });
 };

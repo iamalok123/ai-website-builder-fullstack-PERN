@@ -1,26 +1,25 @@
-import { Route, Routes, useLocation } from "react-router-dom"
-import Home from "./pages/Home"
-import MyProjects from "./pages/MyProjects"
-import Preview from "./pages/Preview"
-import Pricing from "./pages/Pricing"
-import Projects from "./pages/Projects"
-import View from "./pages/View"
-import Community from "./pages/Community"
-import Navbar from "./components/Navbar"
-import { Toaster } from 'sonner'
-import AuthPage from "./pages/auth/AuthPage"
-import Settings from "./pages/Settings"
-import Loading from "./pages/Loading"
+import { Route, Routes, useLocation } from "react-router-dom";
+import Home from "./pages/Home";
+import MyProjects from "./pages/MyProjects";
+import Preview from "./pages/Preview";
+import Pricing from "./pages/Pricing";
+import Projects from "./pages/Projects";
+import View from "./pages/View";
+import Community from "./pages/Community";
+import Navbar from "./components/Navbar";
+import { Toaster } from "sonner";
+import AuthPage from "./pages/auth/AuthPage";
+import Settings from "./pages/Settings";
+import Loading from "./pages/Loading";
 
 const App = () => {
   const { pathname } = useLocation();
-  const hideNavbar = pathname.startsWith('/projects/')
-    && pathname !== '/projects'
-    || pathname.startsWith('/view/')
-    || pathname.startsWith('/preview/');
+  const hideNavbar =
+    (pathname.startsWith("/projects/") && pathname !== "/projects") ||
+    pathname.startsWith("/view/") ||
+    pathname.startsWith("/preview/");
 
   return (
-    // <div className="bg-white min-h-screen">
     <div className="bg-black min-h-screen">
       <Toaster />
       {!hideNavbar && <Navbar />}
@@ -40,7 +39,7 @@ const App = () => {
         </Routes>
       </main>
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;

@@ -1,6 +1,35 @@
+/**
+It acts like a bank ledger for user credits. 
+If credits are modified, it must be recorded precisely so users are never double-charged and balance figures remain accurate.
+
+What it does:
+- debitCredits: Deducts credits when a user starts generating or revising a website. 
+If the user doesn't have enough, it throws an InsufficientCreditsError.
+
+- refundCredits: Restores credits if an AI generation attempt fails or times out.
+
+- recordCreditPurchase: Adds credits to the account when Stripe notifies the server of a successful purchase.
+
+* Every operation runs inside a database transaction (tx). 
+Once it updates the user's credit balance, 
+it creates a receipt row in the CreditLedger table storing the type (debit, refund, or purchase), 
+the amount, and the reason.
+*/
+
 import { Prisma } from "../generated/prisma/client.js";
 
-type Tx = Prisma.TransactionClient;
+/*
+Normally, you query the database using the global prisma client (e.g., prisma.user.findUnique()).
+
+However, inside a transaction block, you must not use the global prisma client. 
+You must use the special temporary client provided by Prisma (traditionally named tx).
+
+The type of this special client is Prisma.TransactionClient.
+It has all the same methods as prisma (like .update(), .create()), 
+but it guarantees that all database queries run inside that same transaction block.
+*/
+
+type Tx = Prisma.TransactionClient; 
 
 type CreditLedgerInput = {
     userId: string;

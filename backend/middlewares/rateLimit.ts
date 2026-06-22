@@ -36,24 +36,31 @@ export const createRateLimit = ({ name, windowMs, max, message }: RateLimitOptio
         const now = Date.now();
         const key = `${name}:${getClientKey(req)}`;
         const existingBucket = buckets.get(key);
+
         const bucket = existingBucket && existingBucket.resetAt > now
             ? existingBucket
             : { count: 0, resetAt: now + windowMs };
 
+        // 2. Increment Request Count
         bucket.count += 1;
         buckets.set(key, bucket);
-
+        
+        // 3. Calculate Rate Limit Metadata
         const remaining = Math.max(max - bucket.count, 0);
         const retryAfterSeconds = Math.max(Math.ceil((bucket.resetAt - now) / 1000), 1);
 
+
+        // 4. Set Standard HTTP Headers
         res.setHeader('X-RateLimit-Limit', String(max));
         res.setHeader('X-RateLimit-Remaining', String(remaining));
         res.setHeader('X-RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
-
+        
+        // 5. Probabilistic Garbage Collection (1% chance per request)
         if (Math.random() < 0.01) {
             sweepExpiredBuckets(now);
         }
 
+        // 6. Check Limit and Block if Necessary
         if (bucket.count > max) {
             res.setHeader('Retry-After', String(retryAfterSeconds));
             return res.status(429).json({
@@ -61,6 +68,7 @@ export const createRateLimit = ({ name, windowMs, max, message }: RateLimitOptio
             });
         }
 
+        // 7. Success - Pass to next middleware/controller
         next();
     }
 }
