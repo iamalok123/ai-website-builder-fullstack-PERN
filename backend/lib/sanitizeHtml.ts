@@ -3,12 +3,11 @@
  * empty content, the next model in the list is tried.
  */
 export const AI_MODELS = [
-    "openrouter/free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "minimax/minimax-m2.5:free",
-    "qwen/qwen3.6-plus:free",
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
+  "openrouter/free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "openai/gpt-oss-120b:free",
+  "poolside/laguna-xs.2:free"
 ];
 
 
