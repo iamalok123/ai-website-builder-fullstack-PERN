@@ -110,7 +110,7 @@ const Community = () => {
             </div>
           ) : (
             <div className="flex flex-col justify-center items-center h-[80vh]">
-              <h1 className="text-3xl font-semibold text-gray-300">You have no projects yet !</h1>
+              <h1 className="text-3xl font-semibold text-gray-300">No published projects yet</h1>
               <button
                 className="flex items-center px-5 py-2 mt-5 rounded-md bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition-all "
                 onClick={() => navigate('/')}>

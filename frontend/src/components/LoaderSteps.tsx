@@ -18,7 +18,7 @@ const LoaderSteps = () => {
             setCurrent((prev) => (prev + 1) % steps.length)
         }, STEP_DURATION)
         return () => clearInterval(interval)
-    }, [current])
+    }, [])
     
     const Icon = steps[current].icon ;
 

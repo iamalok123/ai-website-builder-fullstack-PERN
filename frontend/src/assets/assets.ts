@@ -56,13 +56,34 @@ export const iframeScript = `
             }
             }
 
+            // ─── CAPTURE PHASE listener (3rd arg = true) ────────────────────────────
+            // Must run BEFORE any generated-website JS (onclick, addEventListener on
+            // elements/document in bubble phase). Using capture guarantees we intercept
+            // the event at the top of the DOM tree on its way DOWN — before it reaches
+            // the target element and before any bubble-phase handlers fire.
             document.addEventListener('click', function (e) {
+            // Determine if the click is on a same-page hash anchor (#section).
+            // These are safe — they only scroll within the iframe, never navigate away.
+            var anchor = e.target && e.target.closest ? e.target.closest('a') : null;
+            var href = anchor ? (anchor.getAttribute('href') || '') : '';
+            var isSamePageHash = anchor && href.startsWith('#') && href.length > 1;
+
+            if (isSamePageHash) {
+                // Let the browser handle smooth-scroll hash navigation inside the iframe.
+                // Do NOT stopPropagation so the site's own scroll JS can also run.
+                return;
+            }
+
+            // For everything else (buttons, forms, external links, empty hrefs, JS links)
+            // prevent the default action AND stop ALL other handlers from running.
+            // This keeps the iframe from reloading or navigating away.
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation(); // kills sibling listeners on the same element too
 
             clearSelected();
 
-            let target = e.target;
+            var target = e.target;
 
             // Don't select body or html
             if (!target || target.tagName === 'BODY' || target.tagName === 'HTML') {
@@ -131,7 +152,7 @@ export const iframeScript = `
                 }
                 }
             }, '*');
-            });
+            }, true); // <-- capture phase: fires BEFORE any generated-website JS handlers
 
             window.addEventListener('message', function (event) {
             if (event.data.type === 'UPDATE_ELEMENT' && selectedElement) {

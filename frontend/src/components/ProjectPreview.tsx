@@ -89,7 +89,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
             iframeRef.current.contentWindow.postMessage({
                 type: 'UPDATE_ELEMENT',
                 payload: updates
-            }, '*');
+            }, window.location.origin);
         }
     }
 
@@ -112,8 +112,8 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
         desktop: 'w-full',
     }
     const sandboxPermissions = showEditorPanel
-        ? "allow-scripts allow-same-origin"
-        : "allow-scripts";
+        ? "allow-scripts allow-same-origin allow-forms allow-popups"
+        : "allow-scripts allow-forms allow-popups";
 
     return (
         <div className="relative h-full bg-gray-900 flex-1 rounded-xl overflow-hidden max-sm:ml-2">
@@ -136,7 +136,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({ pro
                                     if (iframeRef.current?.contentWindow) {
                                         iframeRef.current.contentWindow.postMessage({
                                             type: 'CLEAR_SELECTION_REQUEST'
-                                        }, '*');
+                                        }, window.location.origin);
                                     }
                                 }
                             }

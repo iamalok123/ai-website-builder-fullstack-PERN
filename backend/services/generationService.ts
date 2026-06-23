@@ -24,6 +24,8 @@ const transactionOptions = {
     maxWait: 10_000
 };
 
+type GenerationHeartbeat = () => Promise<void>;
+
 const getStaleGenerationCutoff = () => new Date(Date.now() - Math.max(GENERATION_TIMEOUT_MS, REVISION_TIMEOUT_MS));
 const getRequestTimeout = (deadline: number) => {
     const remaining = deadline - Date.now();
@@ -43,6 +45,31 @@ const isHtmlResponse = (value: string) => {
 const getCompletionText = (response: unknown) => {
     const completion = response as { choices?: Array<{ message?: { content?: string | null } }> };
     return completion.choices?.[0]?.message?.content || "";
+};
+
+const collectStreamingCompletionText = async (response: unknown, heartbeat: GenerationHeartbeat) => {
+    let content = "";
+    let lastHeartbeatAt = 0;
+    const stream = response as AsyncIterable<{
+        choices?: Array<{
+            delta?: { content?: string | null };
+        }>;
+    }>;
+
+    for await (const chunk of stream) {
+        const deltaContent = chunk.choices?.[0]?.delta?.content;
+        if (deltaContent) {
+            content += deltaContent;
+        }
+
+        if (Date.now() - lastHeartbeatAt >= 10_000) {
+            await heartbeat();
+            lastHeartbeatAt = Date.now();
+        }
+    }
+
+    await heartbeat();
+    return content;
 };
 
 const getProviderStatus = (error: unknown) => {
@@ -70,6 +97,22 @@ const providerAuthError = () => new Error(
 );
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const touchActiveGenerationJob = async (jobId: string) => {
+    const activeJob = await prisma.generationJob.updateMany({
+        where: {
+            id: jobId,
+            status: "running"
+        },
+        data: {
+            error: null
+        }
+    });
+
+    if (activeJob.count === 0) {
+        throw new Error("Generation job is no longer active.");
+    }
+};
 
 const normalizePrompt = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -100,7 +143,7 @@ const enhanceInitialPrompt = async (initialPrompt: string, deadline: number) => 
         const response = await openai.chat.completions.create({
             model: AI_MODELS[0],
             temperature: 0.7,
-            max_tokens: 900,
+            max_tokens: 1000,
             messages: [
                 {
                     role: "system",
@@ -143,7 +186,7 @@ const enhanceRevisionPrompt = async (message: string, deadline: number) => {
         const response = await openai.chat.completions.create({
             model: AI_MODELS[0],
             temperature: 0.7,
-            max_tokens: 450,
+            max_tokens: 1000,
             messages: [
                 {
                     role: "system",
@@ -172,11 +215,12 @@ Include only what should change, and mention how to keep typography, spacing, co
     }
 };
 
-const generateInitialWebsiteCode = async (prompt: string, deadline: number) => {
+const generateInitialWebsiteCode = async (prompt: string, deadline: number, heartbeat: GenerationHeartbeat) => {
     let code = "";
 
     for (let attempts = 1; attempts <= MAX_ATTEMPTS && !code; attempts++) {
         assertGenerationDeadline(deadline);
+        await heartbeat();
         const model = AI_MODELS[(attempts - 1) % AI_MODELS.length];
 
         try {
@@ -184,7 +228,8 @@ const generateInitialWebsiteCode = async (prompt: string, deadline: number) => {
             const response = await openai.chat.completions.create({
                 model,
                 temperature: 0.65,
-                max_tokens: 7000,
+                max_tokens: 10000,
+                stream: true,
                 messages: [
                     {
                         role: "system",
@@ -209,8 +254,9 @@ DESIGN QUALITY BAR:
 - Use tasteful imagery only when useful: picsum.photos URLs with fixed dimensions and object-cover.
 - Buttons must look premium: clear primary CTA, optional secondary CTA, hover state, focus-visible outline.
 
+
 STRUCTURE (4-6 sections, keep HTML under 320 lines):
-1. Nav: brand name, 3-4 links, primary action. Mobile hamburger using getElementById.
+1. Nav: brand name, 3-4 same-page anchor links, primary action. Mobile hamburger using getElementById.
 2. Hero: memorable headline, supporting copy, 1-2 CTAs, optional visual/image/stat panel.
 3. Proof/About/Stats: credibility numbers, short story, or client-style proof.
 4. Features/Services: 3-6 cards with clear titles, useful copy, and consistent spacing.
@@ -229,7 +275,7 @@ STRICT RULES:
 - NO SVGs, NO iframes, NO complex animations, NO carousels, NO animated counters
 - Avoid emojis unless the user explicitly asks for a playful style
 - Images: https://picsum.photos/{w}/{h}?random=N only (never fabricated URLs)
-- JS: ONLY hamburger menu toggle using getElementById. No other JavaScript
+- JS: only small resilient vanilla JavaScript for hamburger menus, smooth same-page navigation, and simple CTA redirects/forms when explicitly needed. Use getElementById, addEventListener, function syntax, and null checks so it works in Chrome, Edge, Firefox, Safari, mobile browsers, and WebViews.
 - Place <script> before </body>
 - Output ONLY the complete HTML document. Nothing else.`
                     },
@@ -240,12 +286,13 @@ STRICT RULES:
                 ]
             }, { timeout: getRequestTimeout(deadline) });
 
-            const result = getCompletionText(response);
+            const result = await collectStreamingCompletionText(response, heartbeat);
             if (isHtmlResponse(result)) {
                 code = result;
                 break;
             }
 
+            await heartbeat();
             console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
         } catch (error) {
             console.error(`Attempt ${attempts} with ${model} failed:`, error);
@@ -254,6 +301,7 @@ STRICT RULES:
             }
             if (attempts === MAX_ATTEMPTS) throw error;
             assertGenerationDeadline(deadline);
+            await heartbeat();
             await wait(1500);
         }
     }
@@ -261,11 +309,12 @@ STRICT RULES:
     return code;
 };
 
-const generateRevisionWebsiteCode = async (currentCode: string, prompt: string, deadline: number) => {
+const generateRevisionWebsiteCode = async (currentCode: string, prompt: string, deadline: number, heartbeat: GenerationHeartbeat) => {
     let code = "";
 
     for (let attempts = 1; attempts <= MAX_ATTEMPTS && !code; attempts++) {
         assertGenerationDeadline(deadline);
+        await heartbeat();
         const model = AI_MODELS[(attempts - 1) % AI_MODELS.length];
 
         try {
@@ -273,7 +322,8 @@ const generateRevisionWebsiteCode = async (currentCode: string, prompt: string, 
             const response = await openai.chat.completions.create({
                 model,
                 temperature: 0.6,
-                max_tokens: 7000,
+                max_tokens: 10000,
+                stream: true,
                 messages: [
                     {
                         role: "system",
@@ -293,9 +343,10 @@ RULES:
 - High contrast: dark bg = light text, light bg = dark text
 - Keep sections visually cohesive but distinct using a controlled palette, subtle borders, shadows, and alternating surfaces.
 - Avoid awkward placement, cramped spacing, unbalanced columns, unreadable text, and random colors.
+
 - Images: https://picsum.photos/{w}/{h}?random=N only. No fabricated URLs
 - Avoid emojis unless already used intentionally. NO SVGs, NO iframes
-- JS: Only hamburger menu toggle with getElementById. No complex JS
+- JS: only small resilient vanilla JavaScript for hamburger menus, smooth same-page navigation, and simple CTA redirects/forms when explicitly needed. Use getElementById, addEventListener, function syntax, and null checks so it works in Chrome, Edge, Firefox, Safari, mobile browsers, and WebViews.
 - Keep the result concise and fast-loading
 - Output ONLY the complete HTML. Nothing else.`
                     },
@@ -306,12 +357,13 @@ RULES:
                 ]
             }, { timeout: getRequestTimeout(deadline) });
 
-            const result = getCompletionText(response);
+            const result = await collectStreamingCompletionText(response, heartbeat);
             if (isHtmlResponse(result)) {
                 code = result;
                 break;
             }
 
+            await heartbeat();
             console.warn(`Attempt ${attempts}: Response did not contain valid HTML, retrying...`);
         } catch (error) {
             console.error(`Attempt ${attempts} with ${model} failed:`, error);
@@ -320,6 +372,7 @@ RULES:
             }
             if (attempts === MAX_ATTEMPTS) throw error;
             assertGenerationDeadline(deadline);
+            await heartbeat();
             await wait(1500);
         }
     }
@@ -398,13 +451,7 @@ export const runGenerationJob = async (jobId: string) => {
                 { status: "queued" },
                 {
                     status: "running",
-                    OR: [
-                        { startedAt: { lt: staleCutoff } },
-                        {
-                            startedAt: null,
-                            updatedAt: { lt: staleCutoff }
-                        }
-                    ]
+                    updatedAt: { lt: staleCutoff }
                 }
             ]
         },
@@ -463,10 +510,20 @@ export const runGenerationJob = async (jobId: string) => {
 
         const promptForGeneration = enhancedPrompt;
 
-        await prisma.generationJob.update({
-            where: { id: jobId },
-            data: { enhancedPrompt: promptForGeneration }
+        const promptUpdate = await prisma.generationJob.updateMany({
+            where: {
+                id: jobId,
+                status: "running"
+            },
+            data: {
+                enhancedPrompt: promptForGeneration,
+                error: null
+            }
         });
+
+        if (promptUpdate.count === 0) {
+            throw new Error("Generation job is no longer active.");
+        }
 
         await prisma.conversation.create({
             data: {
@@ -485,9 +542,10 @@ export const runGenerationJob = async (jobId: string) => {
         });
 
         assertGenerationDeadline(deadline);
+        const heartbeat = () => touchActiveGenerationJob(jobId);
         const generatedCode = job.type === "initial"
-            ? await generateInitialWebsiteCode(promptForGeneration, deadline)
-            : await generateRevisionWebsiteCode(job.project.current_code || "", promptForGeneration, deadline);
+            ? await generateInitialWebsiteCode(promptForGeneration, deadline, heartbeat)
+            : await generateRevisionWebsiteCode(job.project.current_code || "", promptForGeneration, deadline, heartbeat);
 
         if (!generatedCode) {
             throw new Error("The AI model did not return valid HTML.");
@@ -579,7 +637,10 @@ export const failStaleGenerationForProject = async (userId: string, projectId: s
 
     const timeoutMs = getJobTimeoutMs(activeJob.type);
     const referenceDate = activeJob.status === "running"
-        ? activeJob.startedAt || activeJob.updatedAt
+        ? new Date(Math.max(
+            activeJob.startedAt?.getTime() || 0,
+            activeJob.updatedAt.getTime()
+        ))
         : activeJob.createdAt;
 
     if (Date.now() - referenceDate.getTime() < timeoutMs) {

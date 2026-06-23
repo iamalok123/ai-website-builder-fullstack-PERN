@@ -87,8 +87,17 @@ const MyProjects = () => {
                                                         }}
                                                     />
                                                 ) : (
-                                                    <div className="flex items-center justify-center h-full text-gray-500">
-                                                        <p className="text-gray-400">No Preview</p>
+                                                    <div className="flex flex-col items-center justify-center h-full gap-2">
+                                                        {(project.generationStatus === 'queued' || project.generationStatus === 'running') ? (
+                                                            <>
+                                                                <Loader2Icon className="animate-spin size-5 text-indigo-400" />
+                                                                <p className="text-indigo-300 text-xs">Generating...</p>
+                                                            </>
+                                                        ) : project.generationStatus === 'failed' ? (
+                                                            <p className="text-red-400 text-xs">Generation failed</p>
+                                                        ) : (
+                                                            <p className="text-gray-400">No Preview</p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

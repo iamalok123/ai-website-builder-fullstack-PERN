@@ -32,7 +32,7 @@ const Navbar = () => {
     return () => {
       isMounted = false;
     };
-  }, [session?.user]);
+  }, [session?.user, location.pathname]);
 
   // Nav links configuration
   const navLinks = [
@@ -53,7 +53,7 @@ const Navbar = () => {
         <div className="flex w-full max-w-4xl items-center justify-between rounded-full border border-white/10 bg-[#070a08]/75 px-4 py-2.5 text-white shadow-2xl shadow-black/30 backdrop-blur-xl md:max-w-6xl">
           {/* Logo */}
           <Link to='/'>
-            <img src="logo.svg" alt="Logo" width={68} height={26} className="h-7 w-auto" style={{ filter: 'brightness(1.55) sepia(0.75) saturate(1.7) hue-rotate(58deg)' }} />
+            <img src="/logo.svg" alt="Logo" width={68} height={26} className="h-7 w-auto" style={{ filter: 'brightness(1.55) sepia(0.75) saturate(1.7) hue-rotate(58deg)' }} />
           </Link>
 
           {/* Desktop Nav Links */}

@@ -160,6 +160,7 @@ ${scriptContent.trim()}
     code = code.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
     code = code.replace(/<(object|embed)[^>]*>[\s\S]*?<\/\1>/gi, '');
     code = code.replace(/<(object|embed)\b[^>]*\/?>/gi, '');
+    code = code.replace(/javascript:/gi, '');
 
     // 20. Ensure TinyMCE CDN is included if TinyMCE is used
     if (code.includes('tinymce') && !code.includes('cdn.tiny.cloud')) {
@@ -171,24 +172,12 @@ ${scriptContent.trim()}
 };
 
 /**
- * Public previews should preserve styling but remove generated behavior.
- * The Tailwind browser CDN is allowed because generated pages rely on it for
- * styling; inline and unrelated scripts are stripped before public rendering.
+ * Public previews are rendered inside sandboxed iframes by the frontend, so
+ * preserve generated behavior such as mobile menus, anchor scrolling, forms,
+ * and simple redirects while still applying the base HTML hardening above.
  */
 export const sanitizeForPublicPreview = (rawCode: string): string => {
-    let code = sanitizeAndFixHtml(rawCode);
-
-    code = code.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (scriptTag) => {
-        const srcMatch = scriptTag.match(/\ssrc=["']([^"']+)["']/i);
-        const src = srcMatch?.[1] || '';
-        const isAllowedTailwindScript = /^https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4/i.test(src);
-        return isAllowedTailwindScript ? scriptTag : '';
-    });
-
-    code = code.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-    code = code.replace(/javascript:/gi, '');
-
-    return code.trim();
+    return sanitizeAndFixHtml(rawCode).trim();
 };
 
 
