@@ -128,13 +128,13 @@ const hasUsefulEnhancement = (original: string, enhanced: string) => {
 const buildEnhancedInitialPromptFallback = (initialPrompt: string) => {
     const prompt = initialPrompt.trim();
 
-    return `Create a polished, production-quality, fully responsive one-page website based on this user request: "${prompt}". Infer the likely business, audience, and goal from the request, then expand it into a clear website brief with a strong brand direction, professional copy, and practical sections. Use a tasteful modern visual style with high contrast, a restrained 4-color palette, polished Google Fonts, clear CTA hierarchy, generous whitespace, balanced cards, subtle borders, and consistent spacing. Include 4-6 useful sections such as nav, hero, proof/about, features or services, CTA/contact, and footer. The design must be mobile-first and work cleanly on phone, tablet, laptop, and desktop: no horizontal scroll, responsive grids, readable text, properly wrapping buttons, balanced columns, and sections that stack naturally on small screens. Use only helpful picsum.photos images if images improve the design; otherwise rely on typography, layout, chips, stats, and cards. Avoid SVGs, iframes, carousels, complex animations, clutter, random colors, low contrast text, and fabricated asset URLs.`;
+    return `Create a polished, premium, high-quality, production-ready, fully responsive one-page website based on this user request: "${prompt}". Infer the likely business, audience, and goal from the request, then expand it into a clear website brief with a strong brand direction, professional copy, and practical sections. Use a tasteful, modern, and high-end visual style with high contrast, a restrained 4-color palette, polished Google Fonts, clear CTA hierarchy, generous whitespace, balanced cards, subtle borders, and consistent spacing. Include 4-6 useful sections such as nav, hero, proof/about, features or services, CTA/contact, and footer. The design must be mobile-first and work cleanly on phone, tablet, laptop, and desktop: no horizontal scroll, responsive grids, readable text, properly wrapping buttons, balanced columns, and sections that stack naturally on small screens. Use only helpful picsum.photos images if images improve the design; otherwise rely on typography, layout, chips, stats, and cards. Avoid SVGs, iframes, carousels, complex animations, clutter, random colors, low contrast text, and fabricated asset URLs.`;
 };
 
 const buildEnhancedRevisionPromptFallback = (message: string) => {
     const prompt = message.trim();
 
-    return `Apply this requested website change: "${prompt}". Preserve the existing design system while improving spacing, alignment, typography, contrast, CTA hierarchy, and responsive behavior. Ensure the updated page remains polished on phone, tablet, laptop, and desktop with no horizontal overflow, readable text, balanced cards, and clean mobile stacking.`;
+    return `Apply this requested website change: "${prompt}". Preserve the existing design system while improving spacing, alignment, typography, contrast, CTA hierarchy, and responsive behavior to ensure a premium, high-quality modern look. Ensure the updated page remains polished on phone, tablet, laptop, and desktop with no horizontal overflow, readable text, balanced cards, and clean mobile stacking.`;
 };
 
 const enhanceInitialPrompt = async (initialPrompt: string, deadline: number) => {
@@ -147,11 +147,11 @@ const enhanceInitialPrompt = async (initialPrompt: string, deadline: number) => 
             messages: [
                 {
                     role: "system",
-                    content: `You are a senior product designer writing a build brief for an AI web developer. Transform the user's request into a specific, tasteful one-page website brief.
+                    content: `You are a senior product designer writing a build brief for an AI web developer. Transform the user's request into a specific, tasteful, and high-quality one-page website brief. Ensure the output targets a premium, modern front-end web design.
 
 Your brief must include:
-- Brand direction: choose one clear visual mood, such as premium SaaS, editorial portfolio, wellness, fintech, creative studio, restaurant, education, or local service.
-- Palette: choose exactly 4 hex colors with roles: background, surface, primary accent, secondary accent. Avoid random rainbow colors and avoid low contrast.
+- Brand direction: choose one clear visual mood, such as premium SaaS, editorial portfolio, wellness, fintech, creative studio, restaurant, education, or local service. Ensure the vibe is high-end and polished.
+- Palette: choose exactly 4 hex colors with roles: background, surface, primary accent, secondary accent. Avoid random rainbow colors and avoid low contrast. Use sophisticated, modern color combinations.
 - Typography: choose a polished Google Font pairing from Inter, Manrope, Plus Jakarta Sans, Playfair Display, Space Grotesk, DM Sans, or Merriweather. Explain heading/body usage.
 - Layout: 5 sections max: Nav, Hero, Proof/Stats or About, Features/Services, CTA/Contact, Footer. Give each section a clear visual purpose.
 - Composition rules: strong hero, generous whitespace, consistent 8/12/16/24/32/48px spacing rhythm, max width, responsive grid, visible CTA, professional cards, no clutter.
@@ -190,7 +190,7 @@ const enhanceRevisionPrompt = async (message: string, deadline: number) => {
             messages: [
                 {
                     role: "system",
-                    content: `You are a senior product designer improving a website edit request. Rewrite the user's request as a precise implementation instruction that preserves the existing site's design system.
+                    content: `You are a senior product designer improving a website edit request. Rewrite the user's request as a precise implementation instruction that preserves the existing site's design system but elevates it to a premium, high-quality standard.
 
 Include only what should change, and mention how to keep typography, spacing, contrast, responsive layout, and CTA hierarchy polished. If colors are involved, specify tasteful Tailwind-compatible color choices. Avoid SVGs, iframes, carousels, and complex JavaScript. Return ONLY 1-3 concise sentences.`
                 },
@@ -233,7 +233,7 @@ const generateInitialWebsiteCode = async (prompt: string, deadline: number, hear
                 messages: [
                     {
                         role: "system",
-                        content: `You are a senior frontend designer and developer. Generate a polished, production-quality, single-page HTML website. Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
+                        content: `You are a senior frontend designer and developer. Generate a polished, premium, high-quality, and production-ready single-page HTML website. Output ONLY valid HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
 
 INCLUDE IN <head>:
 - <meta charset="UTF-8">
@@ -243,12 +243,12 @@ INCLUDE IN <head>:
 - <style> with body font-family, scroll-behavior:smooth, overflow-x:hidden, antialiased rendering, and a few tasteful custom utility styles if needed.
 
 DESIGN QUALITY BAR:
-- Create a beautiful, cohesive visual system, not a plain template.
-- Pick a restrained palette: background, surface, primary accent, secondary accent, and neutral text. Use them consistently.
+- Create a beautiful, cohesive, and premium visual system, not a plain template. It must look like a high-end, modern web application.
+- Pick a restrained palette: background, surface, primary accent, secondary accent, and neutral text. Use them consistently to create a sophisticated look.
 - Use high contrast text. Never put gray text on low-contrast colored backgrounds.
 - Use strong hierarchy: nav small, hero heading large, section headings clear, body readable.
 - Use whitespace intentionally: sections py-16 md:py-24, containers max-w-6xl or max-w-7xl, cards p-6 or p-8.
-- Use rounded-xl/2xl, subtle borders, soft shadows, badges/chips, stats, and alternating section backgrounds.
+- Use rounded-xl/2xl, subtle borders, soft shadows, badges/chips, stats, and alternating section backgrounds to add depth and quality.
 - Do not make all sections the same color. Each section should feel related but visually distinct.
 - Align content carefully. Avoid awkward empty spaces, cramped cards, centered everything, or uneven grids.
 - Use tasteful imagery only when useful: picsum.photos URLs with fixed dimensions and object-cover.
@@ -327,11 +327,11 @@ const generateRevisionWebsiteCode = async (currentCode: string, prompt: string, 
                 messages: [
                     {
                         role: "system",
-                        content: `You are a senior frontend designer and developer. Apply the user's requested changes to the existing HTML website and return a polished complete HTML document. Output ONLY the complete updated HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
+                        content: `You are a senior frontend designer and developer. Apply the user's requested changes to the existing HTML website and return a polished, high-quality, and premium complete HTML document. Output ONLY the complete updated HTML starting with <!DOCTYPE html>. No markdown, no explanations, no code fences.
 
 RULES:
 - Preserve the existing brand direction unless the user asks for a redesign.
-- Improve visual quality while editing: spacing, alignment, typography, contrast, CTA hierarchy, card balance, and responsive behavior must remain professional.
+- Improve visual quality while editing: spacing, alignment, typography, contrast, CTA hierarchy, card balance, and responsive behavior must remain professional and high-end.
 - Use Tailwind CSS for all styling
 - Keep <meta name="viewport" content="width=device-width, initial-scale=1.0"> in <head>
 - Keep Tailwind CDN: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -341,7 +341,7 @@ RULES:
 - Add overflow-hidden on containers to prevent horizontal scroll
 - Use getElementById for DOM selection — never querySelector with Tailwind classes
 - High contrast: dark bg = light text, light bg = dark text
-- Keep sections visually cohesive but distinct using a controlled palette, subtle borders, shadows, and alternating surfaces.
+- Keep sections visually cohesive but distinct using a controlled palette, subtle borders, shadows, and alternating surfaces to maintain a premium feel.
 - Avoid awkward placement, cramped spacing, unbalanced columns, unreadable text, and random colors.
 
 - Images: https://picsum.photos/{w}/{h}?random=N only. No fabricated URLs
